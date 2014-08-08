@@ -1,0 +1,17 @@
+{%- set file_name = FILE.split('.') -%}
+Hi everyone,
+
+{{file_name|trim}} has been prepped and ready for animation.
+
+
+File Path:
+
+"{{FILEPATH}}"
+
+Render:
+
+"{{RENDERPATH}}"
+
+Let me know if you guys have any questions.
+
+{{NAME}}
