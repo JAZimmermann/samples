@@ -685,10 +685,14 @@ class CharacterBoardImage(BoardImage):
         self.img_height = 768
         self.img_width = 1024
 
+        raise Exception("Class not yet implemented.  Needs further work.")
+
 
 class EnvironmentBoardImage(BoardImage):
     def __init__(self, node=None, asset_category='environments'):
         super(EnvironmentBoardImage, self).__init__(node, asset_category)
+
+        raise Exception("Class not yet implemented.  Needs further work.")
 
 
 def ddScreenBoardGrab(image_path, quality=40, width_height=(0,0)):
