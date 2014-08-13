@@ -26,15 +26,20 @@ import maya.cmds as mc
 
 import os
 import re
-import shutil
+# import shutil
 import sys
 from functools import partial
 
 #sys.path.insert(2, "B:/home/johnz/scripts/jbtools/VAD")
+apath = "B:/home/johnz/scripts/jbtools"
+if apath not in sys.path:
+    sys.path.insert(2, apath)
 
+from VAD import ddRigPublisher as ddrp
 
 # VAD
-from mayatools.VAD import ddConstants
+from cw_scripts import ddConstants
+# from mayatools.VAD import ddConstants
 
 
 class RigPublisher_GUI(object):
@@ -291,28 +296,26 @@ class RigPublisher_GUI(object):
         '''
         mc.showWindow(self._window)
 
-    def validateNamingDetails(self, naming_details):
+    def _validate_naming_details(self):
         '''
         validate correct information was entered
         '''
-        print 'Validation Values:: ' + ' - '.join(naming_details.values())
-
         if self.character_type != self.CHAR_TYPE_LABEL and \
             not self.character in [self.CHAR_NAME_LABEL, '---'] and \
                 not self.rig_type in [self.RIG_TYPE_LABEL, '---']:
 
             if not self.version.isdigit():
                 msg = 'Version is not a number.'
-                self.validateNamingFailWin(msg)
+                self._validate_naming_fail_win(msg)
                 return False
 
             return True
         else:
-            self.validateNamingFailWin()
+            self._validate_naming_fail_win()
             return False
 
     @staticmethod
-    def validateNamingFailWin(msg=None):
+    def _validate_naming_fail_win(msg=None):
         '''
         display window with validation naming fail to user
         '''
@@ -325,11 +328,35 @@ class RigPublisher_GUI(object):
                 button=['OK'],
                 defaultButton='OK')
 
+    def get_naming_details(self):
+        '''
+        collect details from gui
+        '''
+        rig_type = self.rig_type
+
+        if re.search('\(', rig_type):
+            rig_type = rig_type.split(' ')[0]
+
+        naming_data = {
+                    'character_type': self.character_type,
+                    'character': self.character,
+                    'rig_type': rig_type,
+                    'version': 'v%03d' % int(self.version)
+                    }
+
+        return naming_data
+
     def kick_off_publish(self, *args):
         '''
         publish rig to versioned file
         '''
-        pass
+        if self._validate_naming_details():
+            print 'attempting to publish character rig...'
+            rpublish = ddrp.RigPublisher(self.get_naming_details())
+            rpublish.do_publish()
+        else:
+            raise Exception('Publish Canceled. '
+                                + 'Character details not correctly entered.')
         # # collect basic details from gui
         # details = collectBasicPubDetails()
         #

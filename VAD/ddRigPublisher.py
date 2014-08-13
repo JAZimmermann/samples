@@ -30,12 +30,17 @@ import shutil
 import sys
 from functools import partial
 
+apath = "B:/home/johnz/scripts/jbtools"
+if apath not in sys.path:
+    sys.path.insert(2, apath)
+
 # VAD
-import ddConstants; reload(ddConstants)
-from ddmail import sendMail
+from cw_scripts import ddConstants
+# import ddConstants; reload(ddConstants)
+# from ddmail import sendMail
 
 # CUR_ASSET_LIB = ddConstants.CHAR_ASSETLIBRARY
-CUR_ASSET_LIB = "B:/home/johnz/assets/characters"
+# CUR_ASSET_LIB = "B:/home/johnz/assets/characters"
 
 # GUI RELATED
 # RIGPUB_WIN_NAME = 'rigPublishWIN'
@@ -56,39 +61,24 @@ CUR_ASSET_LIB = "B:/home/johnz/assets/characters"
 
 
 
-
-class RigPublisher(object):
+class dPublisher(object):
     '''
+    base publishing library
     '''
-    ASSET_LIB = ddConstants.CHAR_ASSETLIBRARY
-
     # PUBLISH FILE RELATED
     FOLDER_PUB = 'published'
     FOLDER_WORK = 'working'
     FOLDER_ARCH = 'archive'
 
-    def __init__(self):
-        '''
-        initialize values
-        '''
-        self._character = None
-        self._character_type = None
-        self._rig_type = None
-        self._version = None
+    def __init__(self, details, lib_category='environments'):
+        self._version = details['version'] or None
         self._archive_version = None
+        self._asset_library = ddConstants.ASSET_DIRECTORIES[lib_category]
+        self._lib_category = lib_category
+        self._pub_ext = 'ma'
+        self._force_save = False
 
-
-    @property
-    def character(self):
-        return self._character
-
-    @property
-    def character_type(self):
-        return self._character_type
-
-    @property
-    def rig_type(self):
-        return self._rig_type
+        self.obj = 'tester'
 
     @property
     def version(self):
@@ -97,6 +87,30 @@ class RigPublisher(object):
     @version.setter
     def version(self, str_version):
         self._version = str_version
+
+    @property
+    def pub_ext(self):
+        return self._pub_ext
+
+    @pub_ext.setter
+    def pub_ext(self, new_ext):
+        self._pub_ext = new_ext
+
+    @property
+    def force_save(self):
+        return self._force_save
+
+    @force_save.setter
+    def force_save(self, force_state):
+        self._force_save = force_state
+
+    @property
+    def asset_library(self):
+        return self._asset_library
+
+    @asset_library.setter
+    def asset_library(self, asset_lib):
+        self._asset_library = asset_lib
 
     @property
     def archive_version(self):
@@ -112,7 +126,7 @@ class RigPublisher(object):
 
     @property
     def file_name(self):
-        return "%s_rig_maya_%s" % (self.character, self.rig_type)
+        return self.obj
 
     @property
     def version_file_name(self):
@@ -120,12 +134,11 @@ class RigPublisher(object):
 
     @property
     def rel_pub_path(self):
-        return os.path.join(self.character_type, self.character,
-                                        'rig', 'maya', self.FOLDER_PUB)
+        return os.path.join(self._lib_category, self.obj, self.FOLDER_PUB)
 
     @property
     def actual_pub_path(self):
-        return os.path.join(self.ASSET_LIB, self.rel_pub_path)
+        return os.path.join(self.asset_library, self.rel_pub_path)
 
     @property
     def actual_file_pub_path(self):
@@ -136,7 +149,7 @@ class RigPublisher(object):
         return os.path.join(self.rel_pub_path, self.file_name)
 
     @staticmethod
-    def versionExistsWin(pub_file_name):
+    def _version_exists_win(pub_file_name):
         '''
         display window if publish file already exists, how to proceed
         '''
@@ -151,13 +164,13 @@ class RigPublisher(object):
 
         return confirm
 
-    def verifyPathDirsExist(self):
+    def _verify_path_dirs_exist(self):
         '''
         verify that path exists on disk
         '''
         try:
             # collect path elements for verification
-            pub_path = self.ASSET_LIB
+            pub_path = self.asset_library
             pub_dirs = self.rel_pub_path.split(os.sep)
             # also make sure archive directory exists for archiving old versions
             pub_dirs.append(self.FOLDER_ARCH)
@@ -176,18 +189,18 @@ class RigPublisher(object):
                     defaultButton='OK')
             raise e
 
-    def getNextVersion(self):
+    def get_next_version(self):
         '''
         determine next version of file
         '''
         found = False
-        test_ext = 'ma'
         version = int(self.version.replace('v', ''))
 
         # locate next version that does not currently exist
         while not found:
             version += 1
-            test_pub_file = '%s_v%03d.%s' % (self.file_name, version, test_ext)
+            test_pub_file = '%s_v%03d.%s' % (self.file_name,
+                                                version, self.pub_ext)
             if not os.path.isfile(os.path.join(self.actual_pub_path,
                                                                 test_pub_file)):
                 found = True
@@ -196,7 +209,7 @@ class RigPublisher(object):
         # update latest values
         self.version = 'v%03d' % version
 
-    def archiveOldVersion(self):
+    def archive_old_version(self):
         '''
         move old version from directory to archive directory
         '''
@@ -214,15 +227,27 @@ class RigPublisher(object):
                         defaultButton='OK')
                 raise e
 
-    def exportMayaFiles(self, force=False):
+    def _get_pub_file_type(self):
         '''
-        Exports selection to the ".ma" file
+        return file type to save as based on extension
         '''
-        ascii_path = "%s.ma" % self.actual_file_pub_path
+        ext_file_type = {'ma': 'mayaAscii',
+                         'mb': 'mayaBinary',
+                         'obj': 'OBJ'
+                        }
+
+        return ext_file_type[self.pub_ext]
+
+    def export_maya_file(self):
+        '''
+        Exports selection to the ".ma" file or specified publish extension
+            basic version, may want a separate / better one for FBX's, etc.
+        '''
+        ascii_path = "%s.%s" % (self.actual_file_pub_path, self.pub_ext)
         print 'Exporting "%s"...' % ascii_path
         try:
-            exportedFile = mc.file(ascii_path, type="mayaAscii",
-                                        exportSelected=True, force=force)
+            exportedFile = mc.file(ascii_path, type=self._get_pub_file_type(),
+                                    exportSelected=True, force=self.force_save)
         except Exception, e:
             mc.confirmDialog(
                     title='Publish Error',
@@ -235,35 +260,134 @@ class RigPublisher(object):
 
         return True
 
-    def doPublish(self, query):
+    def _check_for_existing_publish(self, force=False):
+        '''
+        determine if publish version already exists
+        '''
+        if os.path.isfile('%s.%s' % (self.actual_file_pub_path, self.pub_ext)):
+            confirm_action = self._version_exists_win(self.version_file_name)
+
+            print 'File exists: %s.%s. Proceeding with %s' \
+                                                % (self.actual_file_pub_path,
+                                                   self.pub_ext, confirm_action)
+
+            # determine how to proceed with file
+            if confirm_action == 'Version Up':
+                self.archive_version = '%s.%s' \
+                                   % (self.actual_file_pub_path, self.pub_ext)
+                self.get_next_version()
+            elif confirm_action == 'Replace':
+                self.force_save = True
+            else:
+                print 'Canceled publish.'
+                return False
+
+        else:
+            print 'File does not exist, checking if directory structure exists..'
+            self._verify_path_dirs_exist()
+
+        return True
+
+    def do_publish(self):
+        '''
+        publish to versioned file
+        '''
+        raise Exception("This is the base class. Should be extended to "
+                            + "a child class for specific publishing purposes.")
+
+
+class RigPublisher(dPublisher):
+    '''
+    '''
+    # ASSET_LIB = ddConstants.CHAR_ASSETLIBRARY
+
+    def __init__(self, details):
+        '''
+        initialize values
+        '''
+        super(RigPublisher, self).__init__(details, lib_category='characters')
+        self._character = details['character'] or None
+        self._character_type = details['character_type'] or None
+        self._rig_type = details['rig_type'] or None
+
+    @property
+    def character(self):
+        return self._character
+
+    @property
+    def character_type(self):
+        return self._character_type
+
+    @property
+    def rig_type(self):
+        return self._rig_type
+
+    @property
+    def file_name(self):
+        return "%s_rig_maya_%s" % (self.character, self.rig_type)
+
+    @property
+    def rel_pub_path(self):
+        return os.path.join(self.character_type, self.character,
+                                        'rig', 'maya', self.FOLDER_PUB)
+
+    def _validate_attributes(self):
+        '''
+        validate all required attributes have been passed
+        '''
+        if not self.character or not self.character_type \
+                    or not self.rig_type or not self.version \
+                    or not os.path.isdir(self.asset_library):
+            return False
+
+        return True
+
+    def do_publish(self, force=False):
         '''
         publish rig to versioned file
         '''
         # valid information provided
-        if details:
-            # setup path check variables
-            force = False
+        if self._validate_attributes():
 
-            # determine if publish version already exists
-            if os.path.isfile('%s.ma' % self.actual_file_pub_path):
-                confirm_action = self.versionExistsWin(self.version_file_name)
+            # make sure how to proceed in publish,
+            #   does it need input from user, etc.
+            do_publish = self._check_for_existing_publish()
 
-                print 'File exists: %s.ma. Proceeding with %s' \
-                                % (self.actual_file_pub_path, confirm_action)
+            # check if publish was canceled
+            if not do_publish:
+                return
 
-                # determine how to proceed with file
-                if confirm_action == 'Version Up':
-                    self.archive_version = '%s.ma' % self.actual_file_pub_path
-                    self.getNextVersion()
-                elif confirm_action == 'Replace':
-                    force = True
-                else:
-                    print 'Canceled publish.'
-                    return
+            # attempt to publish file
+            valid_export = self.export_maya_file()
 
-            else:
-                print 'File does not exist, checking if directory structure exists..'
-                self.verifyPathDirsExist()
+            if valid_export:
+                # archive found older publish
+                self.archive_old_version()
+
+            print 'Published %s.ma%s complete.' \
+                                    % (self.version_file_name,
+                                    " not" if not valid_export else '')
+
+            # # determine if publish version already exists
+            # if os.path.isfile('%s.ma' % self.actual_file_pub_path):
+            #     confirm_action = self._version_exists_win(self.version_file_name)
+            #
+            #     print 'File exists: %s.ma. Proceeding with %s' \
+            #                     % (self.actual_file_pub_path, confirm_action)
+            #
+            #     # determine how to proceed with file
+            #     if confirm_action == 'Version Up':
+            #         self.archive_version = '%s.ma' % self.actual_file_pub_path
+            #         self.get_next_version()
+            #     elif confirm_action == 'Replace':
+            #         force = True
+            #     else:
+            #         print 'Canceled publish.'
+            #         return
+            #
+            # else:
+            #     print 'File does not exist, checking if directory structure exists..'
+            #     self._verify_path_dirs_exist()
 
             # # collect user email address for use during publish notifications
             # user_addy = getUserEmail()
@@ -275,18 +399,7 @@ class RigPublisher(object):
             #     print '%s:: %s' % (k, details[k])
             #
             # details['pub_rig_path'] = '%s.ma' % pub_rig_path
-            # attempt to publish file
-            valid_export = self.exportMayaFiles(force)
-            # details['success'] = valid_export
 
-            if valid_export:
-                # archive found older publish
-                self.archiveOldVersion()
-
-            # emailUsers(details)
-            print 'Published %s.ma%s complete.' \
-                                    % (self.version_file_name,
-                                    " not" if not valid_export else '')
 
 
 
