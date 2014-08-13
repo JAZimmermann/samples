@@ -59,7 +59,13 @@ def do(nodes=None):
     cmds.namespace(setNamespace=":")
     # Try to turn off Viewport 2.0 to prevent fatal errors.
     try:
-        mel.eval('setRendererInModelPanel base_OpenGL_Renderer modelPanel4;')
+        # making to use currently focused panel and switch pythonically
+        current_view = cmds.getPanel(withFocus=True)
+        print 'attempting to update current view panel:: %s' % current_view
+        cmds.modelEditor(current_view, edit=True,
+                                            rendererName="base_OpenGL_Renderer")
+        print 'switched renderer to base opengl..'
+        #mel.eval('setRendererInModelPanel base_OpenGL_Renderer modelPanel4;')
     except:
         pass
     
