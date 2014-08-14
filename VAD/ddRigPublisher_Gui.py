@@ -26,11 +26,9 @@ import maya.cmds as mc
 
 import os
 import re
-# import shutil
 import sys
 from functools import partial
 
-#sys.path.insert(2, "B:/home/johnz/scripts/jbtools/VAD")
 apath = "B:/home/johnz/scripts/jbtools"
 if apath not in sys.path:
     sys.path.insert(2, apath)
@@ -81,6 +79,12 @@ class RigPublisher_GUI(object):
     @property
     def version(self):
         return mc.textFieldGrp(self._tfg_version, query=True, text=True)
+
+    def show_win(self):
+        '''
+        show instance gui
+        '''
+        mc.showWindow(self._window)
 
     def _remove_existing(self):
         '''
@@ -177,12 +181,10 @@ class RigPublisher_GUI(object):
         '''
         update character type text field group menu list
         '''
-        print data
         mc.textFieldGrp(self._tfg_char_type, edit=True, text=data)
 
         # build character list for selected category
         if data != self.CHAR_TYPE_LABEL:
-            print data
             self._buildCharTFG(data)
 
     def _buildCharTFG(self, sel_char_type):
@@ -191,7 +193,7 @@ class RigPublisher_GUI(object):
         '''
         data_list = None
         ignore_list = self.IGNORE_LIST
-        print 'char ignore list:: %s' % str(ignore_list)
+
         if not sel_char_type == self.CHAR_TYPE_LABEL \
                             or not sel_char_type == '---':
             dir_path = os.path.join(self.ASSET_LIB, sel_char_type)
@@ -209,28 +211,27 @@ class RigPublisher_GUI(object):
             default_label = self.CHAR_NAME_LABEL
             mc.menuItem(parent=self._tfg_char_popup, label=default_label,
                         command=partial(self._updateCharTFG,
-                                                sel_char_type, default_label))
+                                                default_label))
             print 'setting up data items'
             for data in data_list:
                 mc.menuItem('%sMI' % data, parent=self._tfg_char_popup,
                             label=data,
                             command=partial(self._updateCharTFG,
-                                                        sel_char_type, data))
+                                                        data))
             mc.textFieldGrp(self._tfg_char, edit=True, text=default_label)
         else:
             # setup empty menu
             default_label = '---'
 
             mc.menuItem(parent=self._tfg_char_popup, label=default_label,
-                        command=partial(self._updateCharTFG,
-                                                sel_char_type, default_label))
+                        command=partial(self._updateCharTFG, default_label))
 
             mc.textFieldGrp(self._tfg_char, edit=True, text=default_label)
 
             # attempt to reupdate field
-            self._updateCharTFG(sel_char_type, default_label)
+            self._updateCharTFG(default_label)
 
-    def _updateCharTFG(self, sel_char_type, data, arg=None):
+    def _updateCharTFG(self, data, arg=None):
         '''
         update character text field group menu list
         '''
@@ -257,44 +258,44 @@ class RigPublisher_GUI(object):
             # fill with found data items
             default_label = self.RIG_TYPE_LABEL
             mc.menuItem(parent=self._tfg_rig_type_popup, label=default_label,
-                        command=partial(self._updateRigTypeTFG,
-                                                    sel_char, default_label))
+                        command=partial(self._updateRigTypeTFG, default_label))
             for data in data_list:
                 # get rig type abreviation for use with menu item name
                 rtype = data.split(' ')[0]
                 mc.menuItem('%sMI' % rtype, parent=self._tfg_rig_type_popup,
                             label=data,
-                            command=partial(self._updateRigTypeTFG,
-                                                            sel_char, data))
+                            command=partial(self._updateRigTypeTFG, data))
             mc.textFieldGrp(self._tfg_rig_type, edit=True, text=default_label)
         else:
             # setup empty menu
             default_label = '---'
             mc.menuItem(parent=self._tfg_rig_type_popup, label=default_label,
-                        command=partial(self._updateRigTypeTFG,
-                                                    sel_char, default_label))
+                        command=partial(self._updateRigTypeTFG, default_label))
             mc.textFieldGrp(self._tfg_rig_type, edit=True, text=default_label)
 
-    def _updateRigTypeTFG(self, sel_char, data, arg=None):
+    def _updateRigTypeTFG(self, data, arg=None):
         '''
         update rig type text field group menu list
         '''
         mc.textFieldGrp(self._tfg_rig_type, edit=True, text=data)
 
-    @staticmethod
-    def _clearOutPopupMenu(tfg):
+    def _get_naming_details(self):
         '''
-        clear out any existing popup menu items for control
+        collect details from gui
         '''
-        kids = mc.textFieldGrp(tfg, query=True, popupMenuArray=True)
-        if kids:
-            mc.deleteUI(kids)
+        rig_type = self.rig_type
 
-    def show_win(self):
-        '''
-        show instance gui
-        '''
-        mc.showWindow(self._window)
+        if re.search('\(', rig_type):
+            rig_type = rig_type.split(' ')[0]
+
+        naming_data = {
+                    'character_type': self.character_type,
+                    'character': self.character,
+                    'rig_type': rig_type,
+                    'version': 'v%03d' % int(self.version)
+                    }
+
+        return naming_data
 
     def _validate_naming_details(self):
         '''
@@ -315,6 +316,15 @@ class RigPublisher_GUI(object):
             return False
 
     @staticmethod
+    def _clearOutPopupMenu(tfg):
+        '''
+        clear out any existing popup menu items for control
+        '''
+        kids = mc.textFieldGrp(tfg, query=True, popupMenuArray=True)
+        if kids:
+            mc.deleteUI(kids)
+
+    @staticmethod
     def _validate_naming_fail_win(msg=None):
         '''
         display window with validation naming fail to user
@@ -328,99 +338,14 @@ class RigPublisher_GUI(object):
                 button=['OK'],
                 defaultButton='OK')
 
-    def get_naming_details(self):
-        '''
-        collect details from gui
-        '''
-        rig_type = self.rig_type
-
-        if re.search('\(', rig_type):
-            rig_type = rig_type.split(' ')[0]
-
-        naming_data = {
-                    'character_type': self.character_type,
-                    'character': self.character,
-                    'rig_type': rig_type,
-                    'version': 'v%03d' % int(self.version)
-                    }
-
-        return naming_data
-
     def kick_off_publish(self, *args):
         '''
         publish rig to versioned file
         '''
         if self._validate_naming_details():
             print 'attempting to publish character rig...'
-            rpublish = ddrp.RigPublisher(self.get_naming_details())
+            rpublish = ddrp.RigPublisher(self._get_naming_details())
             rpublish.do_publish()
         else:
             raise Exception('Publish Canceled. '
                                 + 'Character details not correctly entered.')
-        # # collect basic details from gui
-        # details = collectBasicPubDetails()
-        #
-        # # valid information provided
-        # if details:
-        #     # setup path check variables
-        #     pub_ver_file = getVersionFile(details)
-        #     pub_path = getActualPubPath(details)
-        #     pub_rig_path = os.path.join(pub_path, pub_ver_file)
-        #     force = False
-        #
-        #     # determine if publish version already exists
-        #     if os.path.isfile('%s.ma' % pub_rig_path):
-        #         confirm_action = versionExistsWin(pub_ver_file)
-        #
-        #         print 'File exists: %s.ma. Proceeding with %s' \
-        #                                             % (pub_rig_path, confirm_action)
-        #
-        #         # determine how to proceed with file
-        #         if confirm_action == 'Version Up':
-        #             details['archive_version'] = '%s.ma' % pub_rig_path
-        #             details = getNextVersion(details)
-        #             pub_rig_path = os.path.join(pub_path, getVersionFile(details))
-        #         elif confirm_action == 'Replace':
-        #             force = True
-        #         else:
-        #             print 'Canceled publish.'
-        #             return
-        #
-        #     else:
-        #         print 'File does not exist, checking if directory structure exists..'
-        #         verifyPathDirsExist(details)
-        #
-        #     # collect user email address for use during publish notifications
-        #     user_addy = getUserEmail()
-        #     if not user_addy:
-        #         return
-        #     details['user_address'] = user_addy
-        #
-        #     for k in details.keys():
-        #         print '%s:: %s' % (k, details[k])
-        #
-        #     details['pub_rig_path'] = '%s.ma' % pub_rig_path
-        #     # attempt to publish file
-        #     valid_export = exportMayaFiles(pub_rig_path, force)
-        #     details['success'] = valid_export
-        #
-        #     if valid_export:
-        #         # archive found older publish
-        #         archiveOldVersion(details)
-        #
-        #     emailUsers(details)
-        #     print 'Published %s.ma%s complete.' \
-        #                         % (os.path.basename(pub_rig_path),
-        #                             " not" if not valid_export else '')
-
-class Callbacks(object):
-    def __init__(self, func, *args, **kwargs):
-        self.func = func
-        print self.func
-        self.args = args
-        print self.args
-        self.kwargs = kwargs
-        print self.kwargs
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
