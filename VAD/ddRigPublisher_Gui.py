@@ -33,11 +33,13 @@ apath = "B:/home/johnz/scripts/jbtools"
 if apath not in sys.path:
     sys.path.insert(2, apath)
 
-from VAD import ddRigPublisher as ddrp
+
 
 # VAD
 from cw_scripts import ddConstants
+from VAD import ddRigPublisher as ddrp
 # from mayatools.VAD import ddConstants
+# from mayatools.VAD import ddRigPublisher as ddrp
 
 
 class RigPublisher_GUI(object):
@@ -113,24 +115,32 @@ class RigPublisher_GUI(object):
 
         self._tfg_char_type = mc.textFieldGrp(editable=False, label='',
                                             cw2=[10, 190], text='',
-                                            parent=self._tfg_rlayout)
+                                            parent=self._tfg_rlayout,
+                                            annotation=
+                                               "Select character type category")
         self._tfg_char_type_popup = mc.popupMenu(parent=self._tfg_char_type)
 
         self._tfg_char = mc.textFieldGrp(editable=False, label='',
                                         cw2=[10, 190], text='',
-                                        parent=self._tfg_rlayout)
+                                        parent=self._tfg_rlayout,
+                                        annotation=
+                                           "Select character to publish rig as")
         self._tfg_char_popup = mc.popupMenu(parent=self._tfg_char)
 
         self._tfg_rig_type = mc.textFieldGrp(editable=False, label='',
                                         cw2=[10, 190], text='',
-                                        parent=self._tfg_rlayout)
+                                        parent=self._tfg_rlayout,
+                                        annotation=
+                                           "Select type of rig being published")
         self._tfg_rig_type_popup = mc.popupMenu(parent=self._tfg_rig_type)
 
 
         self._tfg_version = mc.textFieldGrp(editable=True,
                                         label='Version Number ', cw2=[100,25],
                                         columnAlign2=['right', 'left'], text='1',
-                                        parent=self._tfg_rlayout)
+                                        parent=self._tfg_rlayout,
+                                        annotation=
+                                        "Enter rig version to attempt publish as")
 
         self._publish_btn = mc.button(label='Publish', height=30,
                                         parent=self._main_flayout,
