@@ -222,7 +222,7 @@ class LayoutScreenBoardGrab_GUI(object):
                 msg = "%s is not a camera" % cur_sel[0]
 
         if msg:
-            mc.confirmDialog(title="Error", messageAlign="cener",
+            mc.confirmDialog(title="Error", messageAlign="center",
                              message=msg, button=["OK"], defaultButton="OK")
             raise Exception(msg)
 
