@@ -74,6 +74,11 @@ import maya.mel as mel
 import sys
 from functools import partial
 
+apath = "B:/home/johnz/scripts/jbtool/cw_scripts"
+if not apath in sys.path:
+    sys.path.insert(2, apath)
+
+
 # VAD
 import ddConstants; reload(ddConstants)
 import ddAddGeoMetadata; reload(ddAddGeoMetadata)
@@ -629,7 +634,7 @@ def do(defaultCategory="environments"):
             )
     checkTexturesBTN = cmds.button(
             "checkTexturesBTN", label="Check Textures", height=buttonHeight, 
-            annotation="Checks if textures files are saved in assetLibrary and file format is tif. Select one or more GEO or GRP nodes.", 
+            annotation="Checks if textures files are file format is proper tifs, no color node modifications and can also state if published in assetLibrary. Select one or more GEO or GRP nodes.",
             parent=mainFL, backgroundColor=colorDk, command=partial(doCheckTextures)
             )
     
