@@ -38,7 +38,6 @@ from cw_scripts import ddConstants
 # from mayatools.VAD import ddConstants
 
 
-
 class dPublisherBase(object):
     '''
     base publishing library

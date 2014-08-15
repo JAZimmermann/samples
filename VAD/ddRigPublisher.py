@@ -37,6 +37,7 @@ if apath not in sys.path:
 from cw_scripts import ddConstants
 from VAD.ddPublishBase import dPublisherBase
 # from mayatools.VAD import ddConstants
+# from mayatools.VAD.ddPublishBase import dPublisherBase
 
 
 class RigPublisher(dPublisherBase):

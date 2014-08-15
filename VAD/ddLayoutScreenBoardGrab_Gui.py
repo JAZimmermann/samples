@@ -26,7 +26,7 @@ import maya.cmds as mc
 
 import os
 import sys
-sys.path.insert(2, "B:/home/johnz/scripts/VAD")
+sys.path.insert(2, "B:/home/johnz/scripts/jbtools/VAD")
 import ddScreenBoardGrab
 
 # from mayatools.VAD import ddScreenBoardGrab
