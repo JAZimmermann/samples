@@ -64,6 +64,7 @@ import ddConstants; reload(ddConstants)
 import ddAddGeoMetadata; reload(ddAddGeoMetadata)
 import ddCheckNames; reload(ddCheckNames)
 import ddCheckTexturePublished; reload(ddCheckTexturePublished)
+import ddCheckTextures; reload(ddCheckTextures)
 import ddImportFromReference; reload(ddImportFromReference)
 import ddLockGeoTransforms; reload(ddLockGeoTransforms)
 import ddRemoveFromLayers; reload(ddRemoveFromLayers)
@@ -123,16 +124,21 @@ def exportAsset(node, override=False, currentAssetCategory="environments"):
             renamedNode = "%s_GRP_v%03d_1" % (node.rpartition("|")[2].split("_GRP")[0], number)
             node = cmds.rename(node, renamedNode)
             
-            # Export textures
-            validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-            
-            if validTextures:
-                # Export files
-                cmds.select(node, r=1)
-                validExport = exportMayaFiles(assetPath=assetPath, force=False)
-                if not validExport:
-                    assetPath = None
-            else:
+            # # Export textures
+            # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+            #
+            # if validTextures:
+            #     # Export files
+            #     cmds.select(node, r=1)
+            #     validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            #     if not validExport:
+            #         assetPath = None
+            # else:
+            #     assetPath = None
+            # Export files
+            cmds.select(node, r=1)
+            validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            if not validExport:
                 assetPath = None
             
         elif confirmSave == "Change asset letter":
@@ -183,15 +189,20 @@ def exportAsset(node, override=False, currentAssetCategory="environments"):
             node = renameAssetNodes(node=node, oldName=asset, newName=newAsset, versionStr="v001")
             
             # Export textures
-            validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-            
-            if validTextures:
-                # Export files
-                cmds.select(node, r=1)
-                validExport = exportMayaFiles(assetPath=assetPath, force=False)
-                if not validExport:
-                    assetPath = None
-            else:
+            # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+            #
+            # if validTextures:
+            #     # Export files
+            #     cmds.select(node, r=1)
+            #     validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            #     if not validExport:
+            #         assetPath = None
+            # else:
+            #     assetPath = None
+            # Export files
+            cmds.select(node, r=1)
+            validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            if not validExport:
                 assetPath = None
                 
         elif confirmSave == "Change variant":
@@ -242,16 +253,21 @@ def exportAsset(node, override=False, currentAssetCategory="environments"):
             # Rename top GRP node and child GEO nodes
             node = renameAssetNodes(node=node, oldName=asset, newName=newAsset, versionStr="v001")
             
-            # Export textures
-            validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-            
-            if validTextures:
-                # Export files
-                cmds.select(node, r=1)
-                validExport = exportMayaFiles(assetPath=assetPath, force=False)
-                if not validExport:
-                    assetPath = None
-            else:
+            # # Export textures
+            # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+            #
+            # if validTextures:
+            #     # Export files
+            #     cmds.select(node, r=1)
+            #     validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            #     if not validExport:
+            #         assetPath = None
+            # else:
+            #     assetPath = None
+            # Export files
+            cmds.select(node, r=1)
+            validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            if not validExport:
                 assetPath = None
                 
         elif confirmSave == "Cancel":
@@ -259,14 +275,18 @@ def exportAsset(node, override=False, currentAssetCategory="environments"):
             
     if confirmSave == "Replace":
         assetPath = os.path.join(assetPath, fileVersionName)
-        # Export textures
-        validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-        if validTextures:
-            cmds.select(node, r=1)
-            validExport = exportMayaFiles(assetPath=assetPath, force=True)
-            if not validExport:
-                assetPath = None
-        else:
+        # # Export textures
+        # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+        # if validTextures:
+        #     cmds.select(node, r=1)
+        #     validExport = exportMayaFiles(assetPath=assetPath, force=True)
+        #     if not validExport:
+        #         assetPath = None
+        # else:
+        #     assetPath = None
+        cmds.select(node, r=1)
+        validExport = exportMayaFiles(assetPath=assetPath, force=True)
+        if not validExport:
             assetPath = None
             
     return node, assetPath, override
@@ -340,16 +360,21 @@ def exportCharacterAsset(node):
             renamedNode = "%s_%s_v%03d_1" % (node.rpartition("|")[2].split("_%s" % dividerGRP)[0], dividerGRP, number)
             node = cmds.rename(node, renamedNode)
             
-            # Export textures
-            validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-            
-            if validTextures:
-                # Export files
-                cmds.select(node, r=1)
-                validExport = exportMayaFiles(assetPath=assetPath, force=False)
-                if not validExport:
-                    assetPath = None
-            else:
+            # # Export textures
+            # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+            #
+            # if validTextures:
+            #     # Export files
+            #     cmds.select(node, r=1)
+            #     validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            #     if not validExport:
+            #         assetPath = None
+            # else:
+            #     assetPath = None
+            # Export files
+            cmds.select(node, r=1)
+            validExport = exportMayaFiles(assetPath=assetPath, force=False)
+            if not validExport:
                 assetPath = None
                 
         elif confirmSave == "Cancel":
@@ -357,16 +382,20 @@ def exportCharacterAsset(node):
 
     if confirmSave == "Replace":
         assetPath = os.path.join(assetPath, fileVersionName)
-        # Export textures
-        validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
-        if validTextures:
-            cmds.select(node, r=1)
-            validExport = exportMayaFiles(assetPath=assetPath, force=True)
-            if not validExport:
-                assetPath = None
-        else:
+        # # Export textures
+        # validTextures = ddCheckTexturePublished.do(nodes=node, assetCategory=currentAssetCategory)
+        # if validTextures:
+        #     cmds.select(node, r=1)
+        #     validExport = exportMayaFiles(assetPath=assetPath, force=True)
+        #     if not validExport:
+        #         assetPath = None
+        # else:
+        #     assetPath = None
+        cmds.select(node, r=1)
+        validExport = exportMayaFiles(assetPath=assetPath, force=True)
+        if not validExport:
             assetPath = None
-            
+
     return node, assetPath
 
 
@@ -484,6 +513,7 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
         nodes = [nodes]
     
     invalidNodes = list()
+    invalid_textured_nodes = list()
     override = False
     resultTopNodes = list()
     
@@ -497,7 +527,8 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
             currentNode = ddImportFromReference.do(currentNode)[0]
         
         invalidNode = ddCheckNames.do(nodes=currentNode, currentAssetCategory=currentAssetCategory)
-        if not invalidNode:
+        valid_textures = ddCheckTextures.do(node=currentNode)[0]
+        if not invalidNode and valid_textures:
             validNode = ddRemoveNamespaces.doRemoveNamespaces(node=currentNode)
             topGrpLayer = ddRemoveFromLayers.do(nodes=validNode)[0]
             
@@ -596,9 +627,14 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                     exportedNode = cmds.parent(exportedNode, nodeParent[0])[0]
                                     
         else:
-            sys.stdout.write("Invalid name %s. Skipping...\n" % invalidNode[0].rpartition("|")[2])
-            invalidNodes.append(sel)
-            
+            if invalidNode:
+                sys.stdout.write("Invalid name %s. Skipping...\n" % invalidNode[0].rpartition("|")[2])
+                invalidNodes.append(sel)
+            elif not valid_textures:
+                sys.stdout.write("Invalid texture found on node %s. Skipping...\n" % sel.rpartition("|")[2])
+                invalid_textured_nodes.append(sel)
+
+
     if invalidNodes:
         nodeString = ""
         for invalidNode in invalidNodes:
@@ -611,7 +647,25 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                 defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
                 )
         cmds.select(invalidNodes, replace=True)
-        
+
+    # report back any nodes found with invalid textures
+    if invalid_textured_nodes:
+        node_string = ", ".join(invalid_textured_nodes)
+
+        confirm = cmds.confirmDialog(
+                title="Warning", messageAlign="center",
+                message="Please fix the textures of the following groups and re-export:\n\n%s" % (node_string),
+                button=["Ok"],
+                defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
+                )
+        if invalidNodes:
+            # add to selection of other invalid nodes
+            cmds.select(invalid_textured_nodes, add=True)
+        else:
+            # select only these invalid nodes
+            cmds.select(invalid_textured_nodes, replace=True)
+
+
     if resultTopNodes:
         try:
             cmds.select(resultTopNodes, r=1)
