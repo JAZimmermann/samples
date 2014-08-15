@@ -147,6 +147,36 @@ def validateTextureFile(fileNode, fileTextureName, publish=False):
     
 # end (validateTextureFile)
 
+def file_color_changed(file_node):
+    '''
+    check to see if file node color gain and color offset have been modified
+        color adjustments should occur on texture file itself
+
+    :type   file_node: C(str)
+    ;:param file_node: shader's file node to check values
+    '''
+    changed_values = False # color values have not been changed
+
+    if cmds.getAttr("%s.colorGain" % file_node)[0] != (1.0, 1.0, 1.0) \
+                or cmds.getAttr("%s.colorOffset" % file_node)[0] != (0, 0, 0):
+        changed_values = True # values have changed from expected
+
+        msg = "The file node '%s' has had either Color Gain " % (file_node) \
+              + "or Color Offset modified.\nReset and apply / update " \
+              + "these changes to the tif file in Photoshop.. "
+        confirm = cmds.confirmDialog(
+                title="Warning", messageAlign="center",
+                message=msg,
+                button=["Continue","Cancel"],
+                defaultButton="Continue",
+                cancelButton="Cancel",
+                dismissString="Cancel"
+                )
+        if confirm == "Cancel":
+            return True # Prevent asset export
+
+    return changed_values
+
 
 def do(node=None, override=False, publish=False):
     '''Checks if textures files are saved in assetLibrary and file format is ".tif".
@@ -238,6 +268,12 @@ def do(node=None, override=False, publish=False):
                         attr = nodeCnx.partition(".")[2]
                         if attr in ddConstants.textureTypes.keys():
                             if not validateTextureFile(fileNode, fileTextureName, publish):
+                                return False, override
+
+                            # make sure the color adjustments have not been made
+                            #   to file node, these should be done to
+                            #   the file itself
+                            if file_color_changed(fileNode):
                                 return False, override
                             
                             # Create texture name to match GEO                                
