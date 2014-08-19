@@ -153,15 +153,14 @@ def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
     
 # end (validateTextureFile)
 
-# may need to rework what gets passed along to this function... passing a list
-#   of meshes does not locate any shaders what so ever
-def check_all_layout_textures(layout_nodes):
+
+def check_group_textures(layout_nodes):
     '''
-    check to make sure all textures in layout elements match
+    check to make sure all textures in provided groups match
         criteria for tif files, ie. 2k, square, no node color adjustments, etc.
 
     :type   layout_nodes: C{list}
-    :param  layout_nodes: all meshes in layout scene to process
+    :param  layout_nodes: list of parent groups to process
     :return:
     '''
     invalid_texture_nodes = []
@@ -178,62 +177,8 @@ def check_all_layout_textures(layout_nodes):
         meshList = cmds.listRelatives(current_node, path=True,
                                       allDescendents=True, type="mesh") or []
 
-        allShadingEngines = collect_shading_engines(meshList)
-
-        for shadingEngine in allShadingEngines:
-            cnxList = [x for x in (cmds.listConnections(shadingEngine) or [])
-                                            if cmds.nodeType(x) == "transform"]
-            cnxList = list(set(cnxList))
-            cnxList.sort()
-            rootName = cnxList[0].rpartition("|")[2].rpartition("_")[0]
-            currentShadingEngine = shadingEngine
-            connectedMeshes = [x for x in
-                               (cmds.listConnections(currentShadingEngine)
-                                or []) if cmds.listRelatives(x, shapes=True)]
-            connectedMeshes = list(set(connectedMeshes))
-
-            # Find connected file nodes
-            historyList = cmds.listHistory(currentShadingEngine) or []
-            fileNodes = [x for x in historyList
-                                        if cmds.nodeType(x) == "file"] or []
-            for fileNode in fileNodes:
-                # skip if node already been found invalid
-                if fileNode in invalid_texture_nodes:
-                    continue
-
-                invalid_node = False
-                fileTextureName = cmds.getAttr("%s.fileTextureName" % fileNode)
-
-                # Determine shader attribute file node is connected to
-                surfaceShader = cmds.listConnections(
-                                    "%s.surfaceShader" % currentShadingEngine)
-                if surfaceShader:
-                    surfaceShader = surfaceShader[0]
-                    cnxList = cmds.listConnections(fileNode, source=False,
-                                           destination=True, plugs=True) or []
-                    fileNodeCnx = [x for x in cnxList
-                                    if surfaceShader in x or "bumpValue" in x]
-                    if fileNodeCnx:
-                        for nodeCnx in fileNodeCnx:
-                            attr = nodeCnx.partition(".")[2]
-                            if attr in ddConstants.textureTypes.keys():
-                                if not validateTextureFile(fileNode,
-                                            fileTextureName, guibose=False):
-                                    invalid_node = True
-
-                                # make sure the color adjustments have not
-                                #   been made to file node, these should be
-                                #   done to the file itself
-                                if file_color_changed(fileNode, guibose=False):
-                                    invalid_node = True
-
-                    else:
-                        sys.stdout.write("--- Skipping %s. " % fileTextureName
-                                         + "Not connected to color, "
-                                         + "specularColor or normalCamera. \n")
-
-                if invalid_node and not fileNode in invalid_texture_nodes:
-                    invalid_texture_nodes.append(fileNode)
+        invalid_texture_nodes = check_shading_engines(
+                                            collect_shading_engines(meshList))
 
     # invalid_texture_nodes = list(set(invalid_texture_nodes))
     sys.stdout.write("Located the following invalid textures: %s. \n" \
@@ -242,9 +187,91 @@ def check_all_layout_textures(layout_nodes):
     return invalid_texture_nodes
 
 
+def check_all_layout_textures():
+    '''
+    check to make sure all textures in layout scene match
+        criteria for tif files, ie. 2k, square, no node color adjustments, etc.
+    '''
+    invalid_texture_nodes = check_shading_engines(
+                                            collect_all_shading_engines()) or []
+
+    if invalid_texture_nodes:
+        sys.stdout.write("Located the following invalid textures: %s. \n" \
+                                            % ", ".join(invalid_texture_nodes))
+
+    return invalid_texture_nodes
+
+
+def check_shading_engines(shading_engines):
+    '''
+    process each provided shading engine for invalid textures
+
+    :type   shading_engines: C{list}
+    :param  shading_engines: list of shading engines to process
+    '''
+    invalid_texture_nodes = []
+
+    for shadingEngine in shading_engines:
+        cnxList = [x for x in (cmds.listConnections(shadingEngine) or [])
+                                        if cmds.nodeType(x) == "transform"]
+        cnxList = list(set(cnxList))
+        cnxList.sort()
+        rootName = cnxList[0].rpartition("|")[2].rpartition("_")[0]
+        currentShadingEngine = shadingEngine
+        connectedMeshes = [x for x in
+                           (cmds.listConnections(currentShadingEngine)
+                            or []) if cmds.listRelatives(x, shapes=True)]
+        connectedMeshes = list(set(connectedMeshes))
+
+        # Find connected file nodes
+        historyList = cmds.listHistory(currentShadingEngine) or []
+        fileNodes = [x for x in historyList
+                                    if cmds.nodeType(x) == "file"] or []
+        for fileNode in fileNodes:
+            # skip if node already been found invalid
+            if fileNode in invalid_texture_nodes:
+                continue
+
+            invalid_node = False
+            fileTextureName = cmds.getAttr("%s.fileTextureName" % fileNode)
+
+            # Determine shader attribute file node is connected to
+            surfaceShader = cmds.listConnections(
+                                "%s.surfaceShader" % currentShadingEngine)
+            if surfaceShader:
+                surfaceShader = surfaceShader[0]
+                cnxList = cmds.listConnections(fileNode, source=False,
+                                       destination=True, plugs=True) or []
+                fileNodeCnx = [x for x in cnxList
+                                if surfaceShader in x or "bumpValue" in x]
+                if fileNodeCnx:
+                    for nodeCnx in fileNodeCnx:
+                        attr = nodeCnx.partition(".")[2]
+                        if attr in ddConstants.textureTypes.keys():
+                            if not validateTextureFile(fileNode,
+                                        fileTextureName, guibose=False):
+                                invalid_node = True
+
+                            # make sure the color adjustments have not
+                            #   been made to file node, these should be
+                            #   done to the file itself
+                            if file_color_changed(fileNode, guibose=False):
+                                invalid_node = True
+
+                else:
+                    sys.stdout.write("--- Skipping %s. " % fileTextureName
+                                     + "Not connected to color, "
+                                     + "specularColor or normalCamera. \n")
+
+            if invalid_node and not fileNode in invalid_texture_nodes:
+                invalid_texture_nodes.append(fileNode)
+
+    return invalid_texture_nodes
+
+
 def collect_shading_engines(mesh_list):
     '''
-    collect all shading engines for the provided meshes
+    collect shading engines for the provided meshes
 
     :type   mesh_list: C{list}
     :param  mesh_list: list of meshes to process
@@ -262,6 +289,14 @@ def collect_shading_engines(mesh_list):
             allShadingEngines.extend(shadingEngines)
 
     return list(set(allShadingEngines))
+
+
+def collect_all_shading_engines():
+    '''
+    collect all shading engines in scene
+    '''
+    return [x for x in (cmds.ls(type="shadingEngine") or [])
+                    if not x in ['initialParticleSE', 'initialShadingGroup']]
 
 
 def file_color_changed(file_node, guibose=True):
