@@ -833,10 +833,7 @@ def doGetInvalidTexturesList(arg=None):
     cmds.refresh()
 
     cmds.waitCursor( state=True )
-    env_groups = [x for x in (cmds.listRelatives("env_master", children=True)
-                                    or []) if cmds.nodeType(x) == "transform"
-                                    and x.startswith("env")]
-    invalid_textures = ddCheckTextures.check_all_layout_textures(env_groups)
+    invalid_textures = ddCheckTextures.check_all_layout_textures()
 
     doDisplayList(invalid_textures)
     cmds.textField("currentlyShowingTFD", edit=True,
