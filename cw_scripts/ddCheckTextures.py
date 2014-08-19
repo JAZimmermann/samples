@@ -56,12 +56,14 @@ import ddCheckNames; reload(ddCheckNames)
 import ddRemoveNamespaces; reload(ddRemoveNamespaces)
 
 
-def validateTextureFile(fileNode, fileTextureName, publish=False):
+def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
     '''
     Check if texture file is tif format and dimensions are square, under 2K and powers of 2.
     @param fileNode: Maya file node.
     @param fileTextureName: From the file node attribute.
     @param publish: If True, stop on errors. Otherwise, just validate.
+    :type   guibose: C{bool}
+    :param  guibose: allow gui based messages to be display
     '''
     validTextures = True
     if os.path.isfile(fileTextureName):
@@ -70,14 +72,15 @@ def validateTextureFile(fileNode, fileTextureName, publish=False):
             validTextures = False
             #if not publish: 
             #    return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" is not a ".tif" file. ' % fileTextureName, 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False # Prevent asset export
+            if guibose:
+                confirm = cmds.confirmDialog(
+                        title="Warning", messageAlign="center",
+                        message='Texture file "%s" is not a ".tif" file. ' % fileTextureName,
+                        button=["Continue","Cancel"],
+                        defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
+                        )
+                if confirm == "Cancel":
+                    return False # Prevent asset export
         
         # Check if square:
         sel = om.MSelectionList()
@@ -104,14 +107,15 @@ def validateTextureFile(fileNode, fileTextureName, publish=False):
             validTextures = False
             #if not publish: 
             #    return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is not square. ' % (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False # Prevent asset export
+            if guibose:
+                confirm = cmds.confirmDialog(
+                        title="Warning", messageAlign="center",
+                        message='Texture file "%s" has dimensions %s x %s which is not square. ' % (fileTextureName, width, height),
+                        button=["Continue","Cancel"],
+                        defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
+                        )
+                if confirm == "Cancel":
+                    return False # Prevent asset export
         
         
         # Texture dimensions must be less than 2K
@@ -119,14 +123,15 @@ def validateTextureFile(fileNode, fileTextureName, publish=False):
             validTextures = False
             #if not publish: 
             #    return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is above the 2K (2048 x 2048) max. ' % (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False # Prevent asset export
+            if guibose:
+                confirm = cmds.confirmDialog(
+                        title="Warning", messageAlign="center",
+                        message='Texture file "%s" has dimensions %s x %s which is above the 2K (2048 x 2048) max. ' % (fileTextureName, width, height),
+                        button=["Continue","Cancel"],
+                        defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
+                        )
+                if confirm == "Cancel":
+                    return False # Prevent asset export
         
         # Texture dimensions must be power of 2
         widthPower = math.log(width) / math.log(2)
@@ -135,25 +140,139 @@ def validateTextureFile(fileNode, fileTextureName, publish=False):
             validTextures = False
             #if not publish: 
             #    return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is not a power of 2. ' % (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False # Prevent asset export
+            if guibose:
+                confirm = cmds.confirmDialog(
+                        title="Warning", messageAlign="center",
+                        message='Texture file "%s" has dimensions %s x %s which is not a power of 2. ' % (fileTextureName, width, height),
+                        button=["Continue","Cancel"],
+                        defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
+                        )
+                if confirm == "Cancel":
+                    return False # Prevent asset export
     return validTextures
     
 # end (validateTextureFile)
 
-def file_color_changed(file_node):
+# may need to rework what gets passed along to this function... passing a list
+#   of meshes does not locate any shaders what so ever
+def check_all_layout_textures(layout_nodes):
+    '''
+    check to make sure all textures in layout elements match
+        criteria for tif files, ie. 2k, square, no node color adjustments, etc.
+
+    :type   layout_nodes: C{list}
+    :param  layout_nodes: all meshes in layout scene to process
+    :return:
+    '''
+    invalid_texture_nodes = []
+
+    for current_node in layout_nodes:
+        print "processing %s nodes" % current_node
+        if cmds.referenceQuery(current_node, isNodeReferenced=True):
+            sys.stdout.write("--> Unable to check textures of referenced "
+                                            + "node %s. Skipping... \n"
+                                            % current_node.rpartition("|")[2])
+            return False
+
+        # Get list of child mesh nodes under GRP node
+        meshList = cmds.listRelatives(current_node, path=True,
+                                      allDescendents=True, type="mesh") or []
+
+        allShadingEngines = collect_shading_engines(meshList)
+
+        for shadingEngine in allShadingEngines:
+            cnxList = [x for x in (cmds.listConnections(shadingEngine) or [])
+                                            if cmds.nodeType(x) == "transform"]
+            cnxList = list(set(cnxList))
+            cnxList.sort()
+            rootName = cnxList[0].rpartition("|")[2].rpartition("_")[0]
+            currentShadingEngine = shadingEngine
+            connectedMeshes = [x for x in
+                               (cmds.listConnections(currentShadingEngine)
+                                or []) if cmds.listRelatives(x, shapes=True)]
+            connectedMeshes = list(set(connectedMeshes))
+
+            # Find connected file nodes
+            historyList = cmds.listHistory(currentShadingEngine) or []
+            fileNodes = [x for x in historyList
+                                        if cmds.nodeType(x) == "file"] or []
+            for fileNode in fileNodes:
+                # skip if node already been found invalid
+                if fileNode in invalid_texture_nodes:
+                    continue
+
+                invalid_node = False
+                fileTextureName = cmds.getAttr("%s.fileTextureName" % fileNode)
+
+                # Determine shader attribute file node is connected to
+                surfaceShader = cmds.listConnections(
+                                    "%s.surfaceShader" % currentShadingEngine)
+                if surfaceShader:
+                    surfaceShader = surfaceShader[0]
+                    cnxList = cmds.listConnections(fileNode, source=False,
+                                           destination=True, plugs=True) or []
+                    fileNodeCnx = [x for x in cnxList
+                                    if surfaceShader in x or "bumpValue" in x]
+                    if fileNodeCnx:
+                        for nodeCnx in fileNodeCnx:
+                            attr = nodeCnx.partition(".")[2]
+                            if attr in ddConstants.textureTypes.keys():
+                                if not validateTextureFile(fileNode,
+                                            fileTextureName, guibose=False):
+                                    invalid_node = True
+
+                                # make sure the color adjustments have not
+                                #   been made to file node, these should be
+                                #   done to the file itself
+                                if file_color_changed(fileNode, guibose=False):
+                                    invalid_node = True
+
+                    else:
+                        sys.stdout.write("--- Skipping %s. " % fileTextureName
+                                         + "Not connected to color, "
+                                         + "specularColor or normalCamera. \n")
+
+                if invalid_node and not fileNode in invalid_texture_nodes:
+                    invalid_texture_nodes.append(fileNode)
+
+    # invalid_texture_nodes = list(set(invalid_texture_nodes))
+    sys.stdout.write("Located the following invalid textures: %s. \n" \
+                                            % ", ".join(invalid_texture_nodes))
+
+    return invalid_texture_nodes
+
+
+def collect_shading_engines(mesh_list):
+    '''
+    collect all shading engines for the provided meshes
+
+    :type   mesh_list: C{list}
+    :param  mesh_list: list of meshes to process
+    '''
+    allShadingEngines = list()
+    for shapeNode in mesh_list:
+        # Find shaders
+        # shapeTransform = cmds.listRelatives(shapeNode, parent=True)[0]
+        # shapeTransformPath = cmds.listRelatives(shapeNode,
+        #                                           path=True, parent=True)[0]
+        shadingEngines = cmds.listConnections(shapeNode,
+                                                    type="shadingEngine") or []
+        shadingEngines = list(set(shadingEngines))
+        if shadingEngines:
+            allShadingEngines.extend(shadingEngines)
+
+    return list(set(allShadingEngines))
+
+
+def file_color_changed(file_node, guibose=True):
     '''
     check to see if file node color gain and color offset have been modified
         color adjustments should occur on texture file itself
 
-    :type   file_node: C(str)
-    ;:param file_node: shader's file node to check values
+    :type   file_node: C{str}
+    :param  file_node: shader's file node to check values
+    :type   guibose: C{bool}
+    :param  guibose: allow gui based messages to be display
     '''
     changed_values = False # color values have not been changed
 
@@ -164,16 +283,17 @@ def file_color_changed(file_node):
         msg = "The file node '%s' has had either Color Gain " % (file_node) \
               + "or Color Offset modified.\nReset and apply / update " \
               + "these changes to the tif file in Photoshop.. "
-        confirm = cmds.confirmDialog(
-                title="Warning", messageAlign="center",
-                message=msg,
-                button=["Continue","Cancel"],
-                defaultButton="Continue",
-                cancelButton="Cancel",
-                dismissString="Cancel"
-                )
-        if confirm == "Cancel":
-            return True # Prevent asset export
+        if guibose:
+            confirm = cmds.confirmDialog(
+                    title="Warning", messageAlign="center",
+                    message=msg,
+                    button=["Continue","Cancel"],
+                    defaultButton="Continue",
+                    cancelButton="Cancel",
+                    dismissString="Cancel"
+                    )
+            if confirm == "Cancel":
+                return True # Prevent asset export
 
     return changed_values
 
@@ -219,17 +339,7 @@ def do(node=None, override=False, publish=False):
     skipOverwrite = False
     publishedOverride = False
     
-    allShadingEngines = list()
-    for shapeNode in meshList:
-        # Find shaders
-        shapeTransform = cmds.listRelatives(shapeNode, parent=True)[0]
-        shapeTransformPath = cmds.listRelatives(shapeNode, path=True, parent=True)[0]
-        shadingEngines = cmds.listConnections(shapeNode, type="shadingEngine") or []
-        shadingEngines = list(set(shadingEngines))
-        if shadingEngines:
-            allShadingEngines.extend(shadingEngines)
-    
-    allShadingEngines = list(set(allShadingEngines))
+    allShadingEngines = collect_shading_engines(meshList)
     
     for shadingEngine in allShadingEngines:
         cnxList = [x for x in (cmds.listConnections(shadingEngine) or []) if cmds.nodeType(x) == "transform"]
