@@ -72,10 +72,12 @@ def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
             validTextures = False
             #if not publish: 
             #    return False
+            msg = 'Texture file "%s" is not a ".tif" file. ' % fileTextureName
+            sys.stdout.write(msg)
             if guibose:
                 confirm = cmds.confirmDialog(
                         title="Warning", messageAlign="center",
-                        message='Texture file "%s" is not a ".tif" file. ' % fileTextureName,
+                        message=msg,
                         button=["Continue","Cancel"],
                         defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
                         )
@@ -89,7 +91,18 @@ def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
         sel.getDependNode(0, fileObj)
         
         im = om.MImage()
-        im.readFromTextureNode(fileObj)
+        try:
+            im.readFromTextureNode(fileObj)
+        except:
+            msg = 'Unable to analyze data in %s. Verify that TIF file does NOT use ZIP compression.\n' % fileTextureName
+            sys.stdout.write('--> %s' % msg)
+            confirm = cmds.confirmDialog(
+                    title="Warning", messageAlign="center",
+                    message=msg,
+                    button=["Cancel"],
+                    defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
+                    )
+            return False
         
         utilWidth = om.MScriptUtil()
         utilWidth.createFromInt(0)
@@ -107,26 +120,29 @@ def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
             validTextures = False
             #if not publish: 
             #    return False
+            msg = 'Texture file "%s" has dimensions %s x %s which is not square. ' % (fileTextureName, width, height)
+            sys.stdout.write(msg)
             if guibose:
                 confirm = cmds.confirmDialog(
                         title="Warning", messageAlign="center",
-                        message='Texture file "%s" has dimensions %s x %s which is not square. ' % (fileTextureName, width, height),
+                        message=msg,
                         button=["Continue","Cancel"],
                         defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
                         )
                 if confirm == "Cancel":
                     return False # Prevent asset export
-        
-        
+
         # Texture dimensions must be less than 2K
         if (width > 2048) or (height > 2048):
             validTextures = False
             #if not publish: 
             #    return False
+            msg = 'Texture file "%s" has dimensions %s x %s which is above the 2K (2048 x 2048) max. ' % (fileTextureName, width, height)
+            sys.stdout.write(msg)
             if guibose:
                 confirm = cmds.confirmDialog(
                         title="Warning", messageAlign="center",
-                        message='Texture file "%s" has dimensions %s x %s which is above the 2K (2048 x 2048) max. ' % (fileTextureName, width, height),
+                        message=msg,
                         button=["Continue","Cancel"],
                         defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
                         )
@@ -140,15 +156,38 @@ def validateTextureFile(fileNode, fileTextureName, publish=False, guibose=True):
             validTextures = False
             #if not publish: 
             #    return False
+            msg = 'Texture file "%s" has dimensions %s x %s which is not a power of 2. ' % (fileTextureName, width, height)
+            sys.stdout.write(msg)
             if guibose:
                 confirm = cmds.confirmDialog(
                         title="Warning", messageAlign="center",
-                        message='Texture file "%s" has dimensions %s x %s which is not a power of 2. ' % (fileTextureName, width, height),
+                        message=msg,
                         button=["Continue","Cancel"],
                         defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
                         )
                 if confirm == "Cancel":
                     return False # Prevent asset export
+
+        # make sure the color adjustments have not been made
+        #   to file node, these should be done to
+        #   the file itself
+        if file_color_changed(fileNode, guibose):
+            validTextures = False
+
+    else:
+        validTextures = False
+        msg = 'Texture file is missing: "%s".' % fileTextureName
+        sys.stdout.write(msg)
+        if guibose:
+            confirm = cmds.confirmDialog(
+                    title="Warning", messageAlign="center",
+                    message=msg,
+                    button=["Cancel"],
+                    defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
+                    )
+            if confirm == "Cancel":
+                return False
+
     return validTextures
     
 # end (validateTextureFile)
@@ -251,12 +290,12 @@ def check_shading_engines(shading_engines):
                             if not validateTextureFile(fileNode,
                                         fileTextureName, guibose=False):
                                 invalid_node = True
-
-                            # make sure the color adjustments have not
-                            #   been made to file node, these should be
-                            #   done to the file itself
-                            if file_color_changed(fileNode, guibose=False):
-                                invalid_node = True
+                            #
+                            # # make sure the color adjustments have not
+                            # #   been made to file node, these should be
+                            # #   done to the file itself
+                            # if file_color_changed(fileNode, guibose=False):
+                            #     invalid_node = True
 
                 else:
                     sys.stdout.write("--- Skipping %s. " % fileTextureName
@@ -317,7 +356,9 @@ def file_color_changed(file_node, guibose=True):
 
         msg = "The file node '%s' has had either Color Gain " % (file_node) \
               + "or Color Offset modified.\nReset and apply / update " \
-              + "these changes to the tif file in Photoshop.. "
+              + "these changes to the tif file in Photoshop.\n"
+        sys.stdout.write(msg)
+
         if guibose:
             confirm = cmds.confirmDialog(
                     title="Warning", messageAlign="center",
@@ -418,8 +459,8 @@ def do(node=None, override=False, publish=False):
                             # make sure the color adjustments have not been made
                             #   to file node, these should be done to
                             #   the file itself
-                            if file_color_changed(fileNode):
-                                return False, override
+                            # if file_color_changed(fileNode):
+                            #     return False, override
                             
                             # Create texture name to match GEO                                
                             newFileName = "%s_%s.tif" % (rootName.replace("GEO", ddConstants.textureTypes[attr]), version)
