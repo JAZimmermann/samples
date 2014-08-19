@@ -99,6 +99,7 @@ import ddCheckGeoInstanceNumber; reload(ddCheckGeoInstanceNumber)
 import ddCheckNames; reload(ddCheckNames)
 import ddCheckPivotOffsets; reload(ddCheckPivotOffsets)
 import ddCheckTexturePublished; reload(ddCheckTexturePublished)
+import ddCheckTextures; reload(ddCheckTextures)
 import ddCreateReference; reload(ddCreateReference)
 import ddDeleteRefObject; reload(ddDeleteRefObject)
 import ddDeleteUnknownNodes; reload(ddDeleteUnknownNodes)
@@ -252,11 +253,11 @@ def doCleanScene(arg=None):
             doFixInvalidNames()
     
     # Show invalid textures.
-    unpublishedShadingEngines = doGetInvalidTexturesList()
-    if unpublishedShadingEngines:
+    invalid_textures = doGetInvalidTexturesList()
+    if invalid_textures:
         confirm = cmds.confirmDialog(
                 title="Warning", messageAlign="center", 
-                message='There are unpublished shaders.', 
+                message='There are invalid textures.',
                 button=[" Ignore and Continue ", "Cancel"], 
                 defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
                 )
@@ -825,9 +826,35 @@ def doGetInvalidNamesList(arg=None):
 def doGetInvalidTexturesList(arg=None):
     '''
     Button: Show Invalid Textures.
-    Checks scene for invalid textures. Returns list of invalid top group nodes.
+    Checks scene for invalid textures. Returns list of invalid texture nodes.
     '''
     sys.stdout.write("Building list of invalid textures...\n")
+    doClearDisplay()
+    cmds.refresh()
+
+    cmds.waitCursor( state=True )
+    env_groups = [x for x in (cmds.listRelatives("env_master", children=True)
+                                    or []) if cmds.nodeType(x) == "transform"
+                                    and x.startswith("env")]
+    invalid_textures = ddCheckTextures.check_all_layout_textures(env_groups)
+
+    doDisplayList(invalid_textures)
+    cmds.textField("currentlyShowingTFD", edit=True,
+                                        text="doGetInvalidTexturesList")
+    cmds.waitCursor( state=False )
+
+    return invalid_textures
+
+# end (doGetInvalidTexturesList)
+
+
+def doGetUnpublishedTexturesList(arg=None):
+    '''
+    Button: Show Unpublished Textures.
+    Checks scene for unpublished textures.
+    Returns list of top group nodes using unpublished textures.
+    '''
+    sys.stdout.write("Building list of unpublished textures...\n")
     doClearDisplay()
     cmds.refresh()
     
@@ -835,12 +862,12 @@ def doGetInvalidTexturesList(arg=None):
     unpublishedShadingEngines = ddCheckTexturePublished.doCheckAllTexturesPublished()
     
     doDisplayList(unpublishedShadingEngines)
-    cmds.textField("currentlyShowingTFD", edit=True, text="doGetInvalidTexturesList")
+    cmds.textField("currentlyShowingTFD", edit=True, text="doGetUnpublishedTexturesList")
     cmds.waitCursor( state=False )
     
     return unpublishedShadingEngines
     
-# end (doGetInvalidTexturesList)
+# end (doGetUnpublishedTexturesList)
 
 
 def doGetNodesWithRefEdits(arg=None):
@@ -1364,6 +1391,8 @@ def doRefreshDisplay(arg=None):
         doGetInvalidNamesList()
     elif refreshFn == "doGetInvalidTexturesList":
         doGetInvalidTexturesList()
+    elif refreshFn == "doGetUnpublishedTexturesList":
+        doGetUnpublishedTexturesList()
     elif refreshFn == "doGetPivotOffsetsList":
         doGetPivotOffsetsList()
     elif refreshFn == "doGetNodesWithRefEdits":
@@ -1995,8 +2024,14 @@ def do():
             
     invalidTexturesBTN = cmds.button(
             "invalidTexturesBTN", label="Show Invalid Textures", height=buttonHeight, 
-            annotation="Shows list of nodes with invalid textures", parent=buttonsFL, 
+            annotation="Shows list of invalid texture nodes", parent=buttonsFL,
             backgroundColor=colorLt, c=partial(doGetInvalidTexturesList)
+            )
+
+    unpublishedShadersBTN = cmds.button(
+            "unpublishedShadersBTN", label="Show Unpublished Shaders", height=buttonHeight,
+            annotation="Shows list of nodes with unpublished shaders", parent=buttonsFL,
+            backgroundColor=colorLt, c=partial(doGetUnpublishedTexturesList)
             )
             
     invalidPivotsBTN = cmds.button(
@@ -2139,7 +2174,8 @@ def do():
                            (importAllWithRefBTN, "left", 3, 50), (importAllWithRefBTN, "right", 0, 100),
                            (invalidNamesBTN, "left", 0, 0), (invalidNamesBTN, "right", 3, 50),
                            (fixInvalidNamesBTN, "left", 3, 50), (fixInvalidNamesBTN, "right", 0, 100),
-                           (invalidTexturesBTN, "left", 0, 0), (invalidTexturesBTN, "right", 0, 100),
+                           (invalidTexturesBTN, "left", 0, 0), (invalidTexturesBTN, "right", 3, 50),
+                           (unpublishedShadersBTN, "left", 3, 50), (unpublishedShadersBTN, "right", 0, 100),
                            (invalidPivotsBTN, "left", 0, 0), (invalidPivotsBTN, "right", 3, 50),
                            (fixInvalidPivotsBTN, "left", 3, 50), (fixInvalidPivotsBTN, "right", 0, 100),
                            (vertexEditsBTN, "left", 0, 0), (vertexEditsBTN, "right", 3, 50),
@@ -2165,8 +2201,9 @@ def do():
                         (invalidNamesBTN, "top", 7, replaceAllWithRefBTN),
                         (fixInvalidNamesBTN, "top", 7, importAllWithRefBTN),
                         (invalidTexturesBTN, "top", 7, invalidNamesBTN),
+                        (unpublishedShadersBTN, "top", 7, fixInvalidNamesBTN),
                         (invalidPivotsBTN, "top", 7, invalidTexturesBTN),
-                        (fixInvalidPivotsBTN, "top", 7, invalidTexturesBTN),
+                        (fixInvalidPivotsBTN, "top", 7, unpublishedShadersBTN),
                         (vertexEditsBTN, "top", 7, invalidPivotsBTN),
                         (fixVertexEditsBTN, "top", 7, fixInvalidPivotsBTN),
                         (duplicateNodeNamesBTN, "top", 7, vertexEditsBTN), 
