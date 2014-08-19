@@ -61,6 +61,7 @@ import math
 # VAD
 import ddConstants; reload(ddConstants)
 import ddCheckForDuplicateShader; reload(ddCheckForDuplicateShader)
+import ddCheckTextures; reload(ddCheckTextures)
 import ddDeleteUnknownNodes; reload(ddDeleteUnknownNodes)
 import ddRemoveRequires; reload(ddRemoveRequires)
 
@@ -310,105 +311,10 @@ def validateTextureFile(fileNode, fileTextureName, publish=True):
     @param fileTextureName: From the file node attribute.
     @param publish: If True, stop on errors. Otherwise, just validate.
     '''
-    if os.path.isfile(fileTextureName):
-        # Check if file format is TIF. 
-        if not imghdr.what(fileTextureName) == "tiff":
-            if not publish: 
-                return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" is not a ".tif" file.' % fileTextureName, 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False
-        
-        # Check if square:
-        sel = om.MSelectionList()
-        sel.add(fileNode)
-        fileObj = om.MObject()
-        sel.getDependNode(0, fileObj)
-        
-        im = om.MImage()
-        try:
-            im.readFromTextureNode(fileObj)
-        except:
-            sys.stdout.write('--> Unable to analyze data in %s. Verify that TIF file does NOT use ZIP compression.\n' % fileTextureName)
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Unable to analyze data in %s. \n\nVerify that TIF file does NOT use ZIP compression.\n' % fileTextureName, 
-                    button=["Cancel"], 
-                    defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            return False
-        
-        utilWidth = om.MScriptUtil()
-        utilWidth.createFromInt(0)
-        ptrWidth = utilWidth.asUintPtr()
-        utilHeight = om.MScriptUtil()
-        utilHeight.createFromInt(0)
-        ptrHeight = utilHeight.asUintPtr()
-        
-        im.getSize(ptrWidth, ptrHeight)
-        width = om.MScriptUtil.getUint(ptrWidth)
-        height = om.MScriptUtil.getUint(ptrHeight)
-        
-        # Texture dimensions must be square.
-        if abs(width - height) > 0.0001:
-            if not publish: 
-                return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is not square.' % 
-                            (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False
-        
-        # Texture dimensions must be less than 2K.
-        if (width > 2048) or (height > 2048):
-            if not publish: 
-                return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is above the 2K (2048 x 2048) max.' % 
-                            (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False
-        
-        # Texture dimensions must be power of 2.
-        widthPower = math.log(width) / math.log(2)
-        heightPower = math.log(height) / math.log(2)
-        if not(widthPower - int(widthPower) < 0.0001) and not(heightPower - int(heightPower) < 0.0001):
-            if not publish: 
-                return False
-            confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Texture file "%s" has dimensions %s x %s which is not a power of 2.' % 
-                            (fileTextureName, width, height), 
-                    button=["Continue","Cancel"], 
-                    defaultButton="Continue", cancelButton="Cancel", dismissString="Cancel"
-                    )
-            if confirm == "Cancel": 
-                return False
-                
-        return True
-    else:
-        confirm = cmds.confirmDialog(
-                title="Warning", messageAlign="center", 
-                message='Texture file is missing: "%s".' % fileTextureName, 
-                button=["Cancel"], 
-                defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
-                )
-        if confirm == "Cancel": 
-            return False
-        
+    return ddCheckTextures.validateTextureFile(fileNode,
+                                               fileTextureName,
+                                               publish, guibose=True)
+
 # end (validateTextureFile)
 
 
