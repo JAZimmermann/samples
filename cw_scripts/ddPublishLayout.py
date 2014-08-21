@@ -537,6 +537,7 @@ def doDisplayList(nodeList, checkIfReferenced=True):
     if nodeList:
         nodeList.sort()
         cmds.textScrollList(displayDataSL, edit=True, append=nodeList)
+
         if checkIfReferenced:
             for i in range(len(nodeList)):
                 if cmds.referenceQuery(nodeList[i], isNodeReferenced=True):
@@ -777,30 +778,31 @@ def doGetInvalidNamesList(arg=None):
     for mesh in meshList:
         if not ("GEO" in mesh) and not ("zulu" in mesh):
             invalidNamesList.append(mesh)
-            
+
     # Get invalid chessPiece names.
     chessPieceGrpNames = ["chesspieces", "Chesspieces", "ChessPieces", "chessPieces", "CHESSPIECES"]
     chessPieceGrp = ""
     chessPieces = list()
     
     for chessPieceName in chessPieceGrpNames:
-        if cmds.objExists(chessPieceName):
-            fullPath = cmds.ls(chessPieceName, long=True)
+        if cmds.objExists(chessPieceName) and cmds.nodeType(chessPieceName) == "transform":
+            fullPath = cmds.ls(chessPieceName,
+                                        long=True, type="transform")
             chessPieceGrp = fullPath[0]
-            
+
     if chessPieceGrp:
         chessPieces = cmds.listRelatives(chessPieceGrp, fullPath=True)
-        
+
     for chessPieceName in chessPieceGrpNames:
         selList = [x for x in (cmds.ls("*%s*" % chessPieceName, long=True) or []) if cmds.nodeType(x) == "transform"]
         for sel in selList:
             if not sel in chessPieces and not sel == chessPieceGrp:
                 chessPieces.append(sel)
-    
+
     for chessPiece in chessPieces:
         invalidNodes = ddCheckNames.do(chessPiece, currentAssetCategory="characters")
         if invalidNodes:
-                invalidNamesList.append(invalidNodes[0])
+            invalidNamesList.append(invalidNodes[0])
                 
     # Check for duplicate node names.
     duplicateNodeNames = ddCheckFileForDuplicateNames.do()
@@ -808,11 +810,11 @@ def doGetInvalidNamesList(arg=None):
         invalidNamesList.extend(duplicateNodeNames)
         
     # Check geo instance numbers.
-    ddCheckGeoInstanceNumber.do(topGrps)
+    # ddCheckGeoInstanceNumber.do(topGrps)  This is not just checking, it's renaming
 
     # Update invalid names list.
     invalidNamesList = list(set(invalidNamesList))
-    
+
     doDisplayList(invalidNamesList)
     
     cmds.textField("currentlyShowingTFD", edit=True, text="doGetInvalidNamesList")
