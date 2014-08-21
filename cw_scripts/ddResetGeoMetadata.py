@@ -115,7 +115,7 @@ def do(nodes=None, hierarchy=True):
             
             # Only check the children, ignore top node.
             children = [x for x in (cmds.listRelatives(node, children=True, path=True, allDescendents=True) or []) 
-                        if cmds.nodeType(x) == "transform" and not "_GRP_" in x]
+                        if cmds.nodeType(x) == "transform" and not "_GRP_" in x.rpartition('|')[-1]]
             for child in children:
                 valid = doResetGeoMetadata(child)
                 if not valid:
