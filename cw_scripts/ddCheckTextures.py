@@ -255,7 +255,7 @@ def check_shading_engines(shading_engines):
                                         if cmds.nodeType(x) == "transform"]
         cnxList = list(set(cnxList))
         cnxList.sort()
-        rootName = cnxList[0].rpartition("|")[2].rpartition("_")[0]
+        # rootName = cnxList[0].rpartition("|")[2].rpartition("_")[0]
         currentShadingEngine = shadingEngine
         connectedMeshes = [x for x in
                            (cmds.listConnections(currentShadingEngine)
