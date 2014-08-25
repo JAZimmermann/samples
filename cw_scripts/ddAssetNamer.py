@@ -444,10 +444,15 @@ def doRenameGroup(node, arg=None):
         
         override = False
         result = ""
-        for nodeName in nodeList:
-            result, override = doRenameGeo(geoNode=nodeName, grpNode=newNode, override=override, divider="GRP")
-            if result == "Cancel All":
-                return
+
+        result, override = do_rename_geo_nodes(nodeList, newNode)
+        if result == "Cancel All":
+            return
+
+        # for nodeName in nodeList:
+        #     result, override = doRenameGeo(geoNode=nodeName, grpNode=newNode, override=override, divider="GRP")
+        #     if result == "Cancel All":
+        #         return
     
     cmds.select(newNode, r=1)
     sys.stdout.write("Assets named. \n")
@@ -455,56 +460,126 @@ def doRenameGroup(node, arg=None):
 # end (doRenameGroup)
 
 
-def doRenameGeo(geoNode, grpNode, override=False, divider="GRP"):
-    '''Renames geo node to match group above plus mesh descriptor.
+def do_rename_geo_nodes(node_list, group_node):
     '''
-    cmds.select(geoNode, r=1)
-    cmds.refresh()
-    result = "OK"
-    meshDescriptor = ""
-    meshName = ""
-    children = cmds.listRelatives(grpNode, children=True)
-    baseChildren = list()
-    
-    for child in children:
-        baseChildren.append(child.rpartition("|")[2])
-    
-    if not (divider == "GRP") and len(children) == 1:
-        meshName = "%s_GEO_1" % grpNode.rpartition("|")[2].partition("_GRP")[0]
-    else:
-        while result == "OK" and meshDescriptor == "":
-            result, meshDescriptor, override = getMeshDescriptor(geoNode, grpNode, override, divider)
-            
-            if result == "Cancel All":
-                return result, override
-            
-            if result == "OK" and not meshDescriptor == "":
-                meshDescriptor = "%s%s" % (meshDescriptor[0].lower(), meshDescriptor[1:])
-                meshName = "%s%s_%s_1" % (grpNode.rpartition("|")[2].partition(divider)[0], meshDescriptor, divider.replace("GRP", "GEO"))
-                if (meshName in children) and not(meshName == geoNode.rpartition("|")[2]):
-                    cmds.confirmDialog(
-                            title="Warning", messageAlign="center", 
-                            message="Enter a unique mesh descriptor.", 
-                            button=["Ok"], 
-                            defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
-                            )
+    renames provided geo nodes
+
+    :type   node_list: C{list}
+    :param  node_list: list of transforms under group to process
+    :type   group_node: C{str}
+    :param  group_node: name of parent group node
+    '''
+    print "testing new rename geo nodes"
+    all_mesh_descriptor = ''
+    override = False
+    result = ""
+    divider = "GRP"
+
+    for node_num, node_name in enumerate(node_list):
+        cmds.select(node_name, r=1)
+        cmds.refresh()
+        result = "OK"
+        meshDescriptor = ""
+        meshName = ""
+        children = cmds.listRelatives(group_node, children=True)
+        baseChildren = list()
+
+        for child in children:
+            baseChildren.append(child.rpartition("|")[2])
+
+        if not (divider == "GRP") and len(children) == 1:
+            meshName = "%s_GEO_1" % group_node.rpartition("|")[2].partition("_GRP")[0]
+        else:
+            while result == "OK" and meshDescriptor == "":
+                result, meshDescriptor, override = getMeshDescriptor(node_name, group_node, override, divider)
+
+                if result == "Cancel All":
+                    return result, override
+
+                if result == "OK To All":
+                    all_mesh_descriptor = "%s%s" % (meshDescriptor[0].lower(), meshDescriptor[1:])
                     result = "OK"
-                    meshDescriptor = ""
-                    override = False
-        
-    if result == "OK":
-        newMeshName = cmds.rename(geoNode, meshName)
-        shapeNodes = [x for x in (cmds.listRelatives(newMeshName, path=True, shapes=True) or []) if cmds.nodeType(x) == "mesh"]
-        for shapeNode in shapeNodes:
-            if cmds.getAttr("%s.intermediateObject" % shapeNode):
-                continue
-            cmds.rename(shapeNode, "%sShape" % meshName)
-            
+
+                if result == "OK" and not meshDescriptor == "":
+                    if all_mesh_descriptor:
+                        meshDescriptor = "%s%03d" % (all_mesh_descriptor, node_num)
+
+                    meshDescriptor = "%s%s" % (meshDescriptor[0].lower(), meshDescriptor[1:])
+                    meshName = "%s%s_%s_1" % (group_node.rpartition("|")[2].partition(divider)[0], meshDescriptor, divider.replace("GRP", "GEO"))
+                    if (meshName in children) and not(meshName == node_name.rpartition("|")[2]):
+                        cmds.confirmDialog(
+                                title="Warning", messageAlign="center",
+                                message="Enter a unique mesh descriptor.",
+                                button=["Ok"],
+                                defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
+                                )
+                        result = "OK"
+                        meshDescriptor = ""
+                        override = False
+
+        if result == "OK":
+            newMeshName = cmds.rename(node_name, meshName)
+            shapeNodes = [x for x in (cmds.listRelatives(newMeshName, path=True, shapes=True) or []) if cmds.nodeType(x) == "mesh"]
+            for shapeNode in shapeNodes:
+                if cmds.getAttr("%s.intermediateObject" % shapeNode):
+                    continue
+                cmds.rename(shapeNode, "%sShape" % meshName)
+
     cmds.select(cl=1)
-    
+
     return result, override
-    
-# end (doRenameGeo)
+
+
+# def doRenameGeo(geoNode, grpNode, override=False, divider="GRP"):
+#     '''Renames geo node to match group above plus mesh descriptor.
+#     '''
+#     cmds.select(geoNode, r=1)
+#     cmds.refresh()
+#     result = "OK"
+#     meshDescriptor = ""
+#     meshName = ""
+#     children = cmds.listRelatives(grpNode, children=True)
+#     baseChildren = list()
+#
+#     for child in children:
+#         baseChildren.append(child.rpartition("|")[2])
+#
+#     if not (divider == "GRP") and len(children) == 1:
+#         meshName = "%s_GEO_1" % grpNode.rpartition("|")[2].partition("_GRP")[0]
+#     else:
+#         while result == "OK" and meshDescriptor == "":
+#             result, meshDescriptor, override = getMeshDescriptor(geoNode, grpNode, override, divider)
+#
+#             if result == "Cancel All":
+#                 return result, override
+#
+#             if result == "OK" and not meshDescriptor == "":
+#                 meshDescriptor = "%s%s" % (meshDescriptor[0].lower(), meshDescriptor[1:])
+#                 meshName = "%s%s_%s_1" % (grpNode.rpartition("|")[2].partition(divider)[0], meshDescriptor, divider.replace("GRP", "GEO"))
+#                 if (meshName in children) and not(meshName == geoNode.rpartition("|")[2]):
+#                     cmds.confirmDialog(
+#                             title="Warning", messageAlign="center",
+#                             message="Enter a unique mesh descriptor.",
+#                             button=["Ok"],
+#                             defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
+#                             )
+#                     result = "OK"
+#                     meshDescriptor = ""
+#                     override = False
+#
+#     if result == "OK":
+#         newMeshName = cmds.rename(geoNode, meshName)
+#         shapeNodes = [x for x in (cmds.listRelatives(newMeshName, path=True, shapes=True) or []) if cmds.nodeType(x) == "mesh"]
+#         for shapeNode in shapeNodes:
+#             if cmds.getAttr("%s.intermediateObject" % shapeNode):
+#                 continue
+#             cmds.rename(shapeNode, "%sShape" % meshName)
+#
+#     cmds.select(cl=1)
+#
+#     return result, override
+#
+# # end (doRenameGeo)
 
 
 def getMeshDescriptor(node, grpNode, override=False, divider="GRP"):
@@ -530,7 +605,7 @@ def getMeshDescriptor(node, grpNode, override=False, divider="GRP"):
             meshDescriptor = cmds.promptDialog(query=True, text=True)
         elif result == "OK To All":
             meshDescriptor = cmds.promptDialog(query=True, text=True)
-            result = "OK"
+            # result = "OK"
             override = True
         
     return result, meshDescriptor, override
