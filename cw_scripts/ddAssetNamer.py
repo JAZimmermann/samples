@@ -365,7 +365,8 @@ def doRenameChesspieceGroup(node):
         override = False
         result = ""
         for nodeName in nodeList:
-            result, override = doRenameGeo(geoNode=nodeName, grpNode=newNode, override=override, divider=divider)
+            # result, override = doRenameGeo(geoNode=nodeName, grpNode=newNode, override=override, divider=divider)
+            result, override = do_rename_geo_nodes(nodeList, newNode, divider=divider)
             if result == "Cancel All":
                 return
     
@@ -460,7 +461,7 @@ def doRenameGroup(node, arg=None):
 # end (doRenameGroup)
 
 
-def do_rename_geo_nodes(node_list, group_node):
+def do_rename_geo_nodes(node_list, group_node, divider="GRP"):
     '''
     renames provided geo nodes
 
@@ -473,7 +474,6 @@ def do_rename_geo_nodes(node_list, group_node):
     all_mesh_descriptor = ''
     override = False
     result = ""
-    divider = "GRP"
 
     for node_num, node_name in enumerate(node_list):
         cmds.select(node_name, r=1)
@@ -510,7 +510,7 @@ def do_rename_geo_nodes(node_list, group_node):
                         cmds.confirmDialog(
                                 title="Warning", messageAlign="center",
                                 message="Enter a unique mesh descriptor.",
-                                button=["Ok"],
+                                 button=["Ok"],
                                 defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
                                 )
                         result = "OK"
