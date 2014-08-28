@@ -335,7 +335,8 @@ class BoardView(object):
 
         # attempt to use Viewport 2.0 for better image
         try:
-            mel.eval('ActivateViewport20;')
+            mc.modelEditor(self._current_panel, edit=True,
+                                            rendererName="vp2Renderer")
         except Exception, e:
             raise 'Issue activating Viewport 2.0. %s' % e
 
@@ -375,6 +376,7 @@ class BoardImage(object):
         self.asset_category = asset_cat
         self._asset_library = ddConstants.ASSET_DIRECTORIES[asset_cat]
         self._image_library = ddConstants.IMAGE_DIRECTORIES[asset_cat]
+        self._use_path = None
         self._rel_path = None
         self._img_dir = None
         self._img_prefix = None
@@ -414,6 +416,23 @@ class BoardImage(object):
         :param  rpath: discovered rel path name to set to
         '''
         self._rel_path = rpath
+
+    @property
+    def img_extension(self):
+        '''
+        get the image extension
+        '''
+        return self._img_extension
+
+    @img_extension.setter
+    def img_extension(self, ext):
+        '''
+        set to the specified image extension
+
+        :type   ext: C{str}
+        :param  ext: specified image extension to utilize
+        '''
+        self._img_extension = ext
 
     @property
     def img_prefix(self):
@@ -616,7 +635,7 @@ class LayoutBoardImage(BoardImage):
         :param  iname: name string to be applied to full image naming
         '''
         self._img_file = "%s_%s_v%03d.%s" % (self.img_prefix, iname,
-                                             self.version, self._img_extension)
+                                             self.version, self.img_extension)
 
     @property
     def full_pub_path(self):
@@ -682,10 +701,184 @@ class CharacterBoardImage(BoardImage):
         super(CharacterBoardImage, self).__init__(node, asset_category)
         self._charType = {"hero": "hero", "bg": "background", "sec": "secondary"}
         self._chesspieceTypes = ["CPF", "CPO", "CPD", "CPS"]
+        self._version = 1
+        self._scene = None
+        self._character = None
+        self._img_file = None
         self.img_height = 768
         self.img_width = 1024
+        self._thumb_height = 144
+        self._thumb_width = 144
 
         raise Exception("Class not yet implemented.  Needs further work.")
+
+    @property
+    def thumb_height(self):
+        '''
+        get thumbnail height dimension
+        '''
+        return self._thumb_height
+
+    @thumb_height.setter
+    def thumb_height(self, height):
+        '''
+        set thumbnail height to specified dimension
+
+        :type   height: C{int}
+        :param  height: dimension to use
+        '''
+        self._thumb_height = height
+
+    @property
+    def thumb_width(self):
+        '''
+        get thumbnail width dimension
+        '''
+        return self._thumb_width
+
+    @thumb_width.setter
+    def thumb_width(self, width):
+        '''
+        set thumbnail width to specified dimension
+
+        :type   width: C{int}
+        :param  width: dimension to use
+        '''
+        self._thumb_width = width
+
+    @property
+    def character(self):
+        '''
+        get character name
+        '''
+        return self._character
+
+    @character.setter
+    def character(self, char):
+        '''
+        set character to specified name
+
+        :type   char: C{str}
+        :param  char: character name to use
+        '''
+        self._character = char
+
+    @property
+    def scene(self):
+        '''
+        get scene name
+        '''
+        return self._scene
+
+    @scene.setter
+    def scene(self, scene_name):
+        '''
+        set instance scene name
+
+        :type   scene_name: C{str}
+        :param  scene_name: found scene name to be set
+        '''
+        self._scene = scene_name
+
+    @property
+    def version(self):
+        '''
+        get version number
+        '''
+        return self._version
+
+    @version.setter
+    def version(self, version_str):
+        '''
+        set int version value
+
+        :type   version_str: C{str}
+        :param  version_str: found version string to be set as an int
+        '''
+        self._version = int(version_str)
+
+    @property
+    def img_file(self):
+        '''
+        get the full image file name
+        '''
+        return self._img_file
+
+    @img_file.setter
+    def img_file(self, iname):
+        '''
+        set the full image file name, includes image prefix,
+            unique name (typically name of bookmark), version and file extension
+        :type   iname: C{str}
+        :param  iname: name string to be applied to full image naming
+        '''
+        self._img_file = "%s_%s_v%03d.%s" % (self.img_prefix, iname,
+                                             self.version, self.img_extension)
+
+    @property
+    def full_pub_path(self):
+        '''
+        get a full publish path that includes all directories and image file
+        '''
+        return os.path.join(self.pub_dir, self.img_file)
+
+    def determine_relative_path(self):
+        '''
+        determine the relative path value for scene, ie. the remaining path
+        that will follow the library path
+        '''
+        # collect naming details
+        self._determine_scene_version()
+        # images will be prefixed with only the scene number, dropping the set
+        self.img_prefix = self.scene.rpartition('_')[0]
+
+        # process path passed by user
+        if self._use_path:
+            # replace any found bad path separators in user provided path
+            self.rel_path = self._use_path.replace("\\", "/")
+            # reset asset library as it will not be used
+            self._asset_library = ''
+            self.verify_path_dirs_exist('')
+            return
+
+        # rel path is normally expected to include published directory
+        self.rel_path = os.path.join(self.scene, "published")
+        self.verify_path_dirs_exist(self._asset_library)
+
+    def _determine_scene_version(self):
+        '''
+        check the selected node name and the open scene file name to determine
+        the actual scene number / name and as well as the current version
+        '''
+        # prep regex patterns
+        scene_patt = re.compile("char_(%s)_[A-Z]{3}_[a-z]+"
+                                        % "|".join(self._charType.values()))
+        char_patt = re.compile("[A-Z]{3}_[a-z]+")
+        version_patt = re.compile("_v([0-9]{2,4})_*")
+
+        # get scene file
+        scene_file = mc.file(query=True, sceneName=True)
+
+        # parse the search objects to locate values
+        found_all = 0
+        for scene_obj in [self.node, scene_file]:
+            if scene_patt.search(scene_obj) and not self.scene:
+                if "_GRP_" in scene_obj:
+                    self.scene = scene_obj.split("_GRP_")[0]
+                else:
+                    self.scene = scene_patt.search(scene_obj).group()
+                found_all += 1
+                self.character = char_patt.search(scene_obj).group()
+            if version_patt.search(scene_obj):
+                self.version = version_patt.search(scene_obj).groups()[0]
+                found_all += 1
+            if found_all >= 2:
+                break
+
+        if not self.scene:
+            raise Exception("Scene could not be determined. " + \
+                            "Make sure character name is either in " + \
+                            "node name or file path.")
 
 
 class EnvironmentBoardImage(BoardImage):
