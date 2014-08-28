@@ -206,7 +206,43 @@ def doCleanScene(arg=None):
         mel.eval('setRendererInModelPanel base_OpenGL_Renderer modelPanel4;')
     except:
         pass
-        
+
+    # Check for nodes with vertex edits. Exit publish if found
+    nodesWithVertexEdits = doGetNodesWithVertexEdits()
+    if nodesWithVertexEdits:
+        msg = 'There are nodes with vertex edits in the scene file. ' \
+                + 'Publish as new assets or fix then retry'
+        confirm = cmds.confirmDialog(
+                title="Warning", messageAlign="center",
+                message=msg,
+                button=["OK"],
+                defaultButton="OK"
+                )
+        sys.stdout.write("Canceling publish as vertex edits were located.")
+        return
+
+    # Check for pivot offsets.
+    nodesWithPivotOffsets = doGetPivotOffsetsList()
+    if nodesWithPivotOffsets:
+        confirm = cmds.confirmDialog(
+                title="Warning", messageAlign="center",
+                message='There are nodes with pivot offsets in the scene file. Remove all pivot offsets?',
+                button=["Ok", "Cancel"],
+                defaultButton="Ok", cancelButton="Cancel", dismissString="Ok"
+                )
+        if confirm == "Cancel":
+            return
+        else:
+            valid = ddResetGeoMetadata.do(nodesWithPivotOffsets)
+            if not valid:
+                confirm = cmds.confirmDialog(
+                    title="Warning", messageAlign="center",
+                    message='Unable to remove pivot offsets. Check script editor for unpublished assets.',
+                    button=["Cancel"],
+                    defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
+                    )
+                return
+
     # Check for unpublished assets.
     unpublishedAssets = doGetUnpublishedAssets()
     if unpublishedAssets:
@@ -263,44 +299,8 @@ def doCleanScene(arg=None):
                 )
         if confirm == "Cancel": 
             return
-    
-    # Check for pivot offsets.
-    nodesWithPivotOffsets = doGetPivotOffsetsList()
-    if nodesWithPivotOffsets:
-        confirm = cmds.confirmDialog(
-                title="Warning", messageAlign="center", 
-                message='There are nodes with pivot offsets in the scene file. Remove all pivot offsets?', 
-                button=["Ok", "Cancel"], 
-                defaultButton="Ok", cancelButton="Cancel", dismissString="Ok"
-                )
-        if confirm == "Cancel": 
-            return
-        else:
-            valid = ddResetGeoMetadata.do(nodesWithPivotOffsets)
-            if not valid:
-                confirm = cmds.confirmDialog(
-                    title="Warning", messageAlign="center", 
-                    message='Unable to remove pivot offsets. Check script editor for unpublished assets.', 
-                    button=["Cancel"], 
-                    defaultButton="Cancel", cancelButton="Cancel", dismissString="Cancel"
-                    )
-                return
-                
+
     cmds.refresh()
-    
-    # Check for nodes with vertex edits.
-    nodesWithVertexEdits = doGetNodesWithVertexEdits()
-    if nodesWithVertexEdits:
-        confirm = cmds.confirmDialog(
-                title="Warning", messageAlign="center", 
-                message='There are nodes with vertex edits in the scene file. Remove all vertex edits?', 
-                button=["Remove", "Cancel"], 
-                defaultButton="Remove", cancelButton="Cancel", dismissString="Remove"
-                )
-        if confirm == "Cancel": 
-            return
-        else:
-            doRemoveVertexEdits(nodesWithVertexEdits)
     
     # Check for duplicate node names.
     topGrps = getTopGroups()
@@ -708,20 +708,20 @@ def doFixRefEdits(arg=None):
 # end (doFixRefEdits)
 
 
-def doFixVertexEdits(arg=None):
-    '''Button: Fix Vertex Edits.
-    '''
-    displayDataSL = "displayDataSL"
-    sys.stdout.write("Attempting to fix vertex edits...\n")
-    cmds.refresh()
-    
-    items = cmds.textScrollList(displayDataSL, query=True, allItems=True)
-    if items and not items == ["No nodes found"]:
-        doRemoveVertexEdits(items)
-        doRefreshDisplay()
-    sys.stdout.write("Finished fixing vertex edits.\n")
-
-# end (doFixVertexEdits)
+# def doFixVertexEdits(arg=None):
+#     '''Button: Fix Vertex Edits.
+#     '''
+#     displayDataSL = "displayDataSL"
+#     sys.stdout.write("Attempting to fix vertex edits...\n")
+#     cmds.refresh()
+#
+#     items = cmds.textScrollList(displayDataSL, query=True, allItems=True)
+#     if items and not items == ["No nodes found"]:
+#         doRemoveVertexEdits(items)
+#         doRefreshDisplay()
+#     sys.stdout.write("Finished fixing vertex edits.\n")
+#
+# # end (doFixVertexEdits)
 
 
 def doFixWaitCursor(arg=None):
@@ -967,7 +967,7 @@ def doGetPivotOffsetsList(arg=None):
     doClearDisplay()
     cmds.refresh()
     attrName = "originalPivot"
-    
+        
     cmds.waitCursor( state=True )
     allGrps = [x for x in (cmds.ls("*_GRP*", type="transform", long=True) or []) if not "GEO" in x]
     invalidTransforms = ddCheckPivotOffsets.do(allGrps)
@@ -1508,22 +1508,22 @@ def doRemoveReferenceEdits(nodes=None, arg=None):
 # end (doRemoveReferenceEdits)
 
 
-def doRemoveVertexEdits(nodes=None, arg=None):
-    '''Zero out vertex edits.
-    '''
-    sys.stdout.write("Removing vertex edits... \n")
-    cmds.refresh()
-    cmds.waitCursor( state=True )
-    cmds.undoInfo(openChunk=True)
-    
-    if not nodes:
-        nodes = getSelectedItems() or []
-    if nodes:
-        edFindVertTransforms.edVtxChanges(transforms=nodes, reset=True, sel=False, debugOn=False)
-    cmds.undoInfo(closeChunk=True)
-    cmds.waitCursor( state=False )
-
-# end (doRemoveVertexEdits)
+# def doRemoveVertexEdits(nodes=None, arg=None):
+#     '''Zero out vertex edits.
+#     '''
+#     sys.stdout.write("Removing vertex edits... \n")
+#     cmds.refresh()
+#     cmds.waitCursor( state=True )
+#     cmds.undoInfo(openChunk=True)
+#
+#     if not nodes:
+#         nodes = getSelectedItems() or []
+#     if nodes:
+#         edFindVertTransforms.edVtxChanges(transforms=nodes, reset=True, sel=False, debugOn=False)
+#     cmds.undoInfo(closeChunk=True)
+#     cmds.waitCursor( state=False )
+#
+# # end (doRemoveVertexEdits)
 
 
 def doReplaceAllWithReferences(arg=None):
@@ -1759,18 +1759,18 @@ def scRemoveReferenceEdits(arg=None):
 # end (scRemoveReferenceEdits)
 
 
-def scRemoveVertexEdits(arg=None):
-    '''Menu Item: Remove Vertex Edits.
-    '''
-    sys.stdout.write("Removing vertex edits... \n")
-    cmds.undoInfo(openChunk=True)
-    nodes = getSelectedItems()
-    if nodes:
-        doRemoveVertexEdits(nodes)
-        sys.stdout.write("Finished removing vertex edits.\n")
-    cmds.undoInfo(closeChunk=True)
-
-# end (scRemoveVertexEdits)
+# def scRemoveVertexEdits(arg=None):
+#     '''Menu Item: Remove Vertex Edits.
+#     '''
+#     sys.stdout.write("Removing vertex edits... \n")
+#     cmds.undoInfo(openChunk=True)
+#     nodes = getSelectedItems()
+#     if nodes:
+#         doRemoveVertexEdits(nodes)
+#         sys.stdout.write("Finished removing vertex edits.\n")
+#     cmds.undoInfo(closeChunk=True)
+#
+# # end (scRemoveVertexEdits)
 
 
 def scReplaceWithReference(arg=None):
@@ -1965,7 +1965,29 @@ def do():
             "refreshBTN", label="Refresh", height=buttonHeight, annotation="Refresh display", parent=buttonsFL, 
             backgroundColor=colorLt, c=partial(doRefreshDisplay)
             )
-            
+
+    vertexEditsBTN = cmds.button(
+            "vertexEditsBTN", label="Show Vertex Edits", height=buttonHeight,
+            annotation="Shows list of nodes with vertex edits", parent=buttonsFL,
+            backgroundColor=colorDk, c=partial(doGetNodesWithVertexEdits)
+            )
+    # fixVertexEditsBTN = cmds.button(
+    #         "fixVertexEditsBTN", label="Fix Vertex Edits", height=buttonHeight,
+    #         annotation="Shows list of nodes with vertex edits", parent=buttonsFL,
+    #         backgroundColor=colorLt, c=partial(doFixVertexEdits)
+    #         )
+
+    invalidPivotsBTN = cmds.button(
+            "invalidPivotsBTN", label="Show Invalid Pivots", height=buttonHeight,
+            annotation="Shows list of nodes with pivot offsets", parent=buttonsFL,
+            backgroundColor=colorLt, c=partial(doGetPivotOffsetsList)
+            )
+    fixInvalidPivotsBTN = cmds.button(
+            "fixInvalidPivotsBTN", label="Fix Invalid Pivots", height=buttonHeight,
+            annotation="Fix nodes with pivot offsets", parent=buttonsFL,
+            backgroundColor=colorLt, c=partial(doFixInvalidPivots)
+            )
+
     unpublishedAssetsBTN = cmds.button(
             "unpublishedAssetsBTN", label="Show Unpublished Assets", height=buttonHeight, 
             annotation="Shows list of published assets (one instance).", parent=buttonsFL, 
@@ -1999,11 +2021,11 @@ def do():
             backgroundColor=colorDk, c=partial(doFixRefEdits)
             )
             
-    replaceAllWithRefBTN = cmds.button(
-            "replaceAllWithRefBTN", label="Replace All With References", height=buttonHeight, 
-            annotation="Replace all assets with referenced assets", parent=buttonsFL, 
-            backgroundColor=colorLt, c=partial(doReplaceAllWithReferences)
-            )
+    # replaceAllWithRefBTN = cmds.button(
+    #         "replaceAllWithRefBTN", label="Replace All With References", height=buttonHeight,
+    #         annotation="Replace all assets with referenced assets", parent=buttonsFL,
+    #         backgroundColor=colorLt, c=partial(doReplaceAllWithReferences)
+    #         )
     importAllWithRefBTN = cmds.button(
             "importAllWithRefBTN", label="Import All From Reference", height=buttonHeight, 
             annotation="Import all assets from reference", parent=buttonsFL, 
@@ -2032,29 +2054,7 @@ def do():
             annotation="Shows list of nodes with unpublished shaders", parent=buttonsFL,
             backgroundColor=colorLt, c=partial(doGetUnpublishedTexturesList)
             )
-            
-    invalidPivotsBTN = cmds.button(
-            "invalidPivotsBTN", label="Show Invalid Pivots", height=buttonHeight, 
-            annotation="Shows list of nodes with pivot offsets", parent=buttonsFL, 
-            backgroundColor=colorDk, c=partial(doGetPivotOffsetsList)
-            )
-    fixInvalidPivotsBTN = cmds.button(
-            "fixInvalidPivotsBTN", label="Fix Invalid Pivots", height=buttonHeight, 
-            annotation="Fix nodes with pivot offsets", parent=buttonsFL, 
-            backgroundColor=colorDk, c=partial(doFixInvalidPivots)
-            )
-            
-    vertexEditsBTN = cmds.button(
-            "vertexEditsBTN", label="Show Vertex Edits", height=buttonHeight, 
-            annotation="Shows list of nodes with vertex edits", parent=buttonsFL, 
-            backgroundColor=colorLt, c=partial(doGetNodesWithVertexEdits)
-            )
-    fixVertexEditsBTN = cmds.button(
-            "fixVertexEditsBTN", label="Fix Vertex Edits", height=buttonHeight, 
-            annotation="Shows list of nodes with vertex edits", parent=buttonsFL, 
-            backgroundColor=colorLt, c=partial(doFixVertexEdits)
-            )
-            
+
     duplicateNodeNamesBTN = cmds.button(
             "duplicateNodeNamesBTN", label="Show Duplicate Node Names", height=buttonHeight, 
             annotation="Shows list of nodes with duplicate names", parent=buttonsFL, 
@@ -2119,9 +2119,9 @@ def do():
     cmds.menuItem(p=menu, l="Fix Invalid Pivots (Reset Metadata)", c=partial(scResetGeoMetadata))
     cmds.menuItem(p=menu, l="Import From Reference", c=partial(scImportFromReference))
     cmds.menuItem(p=menu, l="Remove Namespaces", c=partial(scRemoveNamespaces))
-    cmds.menuItem(p=menu, l="Remove Reference Edits", c=partial(scRemoveReferenceEdits))
-    cmds.menuItem(p=menu, l="Remove Vertex Edits", c=partial(scRemoveVertexEdits))
-    cmds.menuItem(p=menu, l="Replace With Reference", c=partial(scReplaceWithReference))
+    # cmds.menuItem(p=menu, l="Remove Reference Edits", c=partial(scRemoveReferenceEdits))
+    # cmds.menuItem(p=menu, l="Remove Vertex Edits", c=partial(scRemoveVertexEdits))
+    # cmds.menuItem(p=menu, l="Replace With Reference", c=partial(scReplaceWithReference))
     cmds.menuItem(p=menu, l="Swap For Reference", c=partial(scSwapForReference))
     
     # Bottom buttons.
@@ -2163,22 +2163,25 @@ def do():
                    ],
         attachPosition = [ (clearDisplayBTN, "left", 0, 0), (clearDisplayBTN, "right", 3, 50),
                            (refreshBTN, "left", 3, 50), (refreshBTN, "right", 0, 100),
+                           (vertexEditsBTN, "left", 0, 0), (vertexEditsBTN, "right", 0, 100),
+                           (invalidPivotsBTN, "left", 0, 0), (invalidPivotsBTN, "right", 3, 50),
+                           (fixInvalidPivotsBTN, "left", 3, 50), (fixInvalidPivotsBTN, "right", 0, 100),
                            (unpublishedAssetsBTN, "left", 0, 0), (unpublishedAssetsBTN, "right", 3, 50), 
                            (publishedAssetsBTN, "left", 3, 50), (publishedAssetsBTN, "right", 0, 100),
                            (referencedBTN, "left", 0, 0), (referencedBTN, "right", 3, 50),
                            (nonReferencedBTN, "left", 3, 50), (nonReferencedBTN, "right", 0, 100),
                            (refEditsBTN, "left", 0, 0), (refEditsBTN, "right", 3, 50),
                            (fixRefEditsBTN, "left", 3, 50), (fixRefEditsBTN, "right", 0, 100),
-                           (replaceAllWithRefBTN, "left", 0, 0), (replaceAllWithRefBTN, "right", 3, 50),
-                           (importAllWithRefBTN, "left", 3, 50), (importAllWithRefBTN, "right", 0, 100),
+                           # (replaceAllWithRefBTN, "left", 0, 0), (replaceAllWithRefBTN, "right", 3, 50),
+                           (importAllWithRefBTN, "left", 0, 0), (importAllWithRefBTN, "right", 0, 100),
                            (invalidNamesBTN, "left", 0, 0), (invalidNamesBTN, "right", 3, 50),
                            (fixInvalidNamesBTN, "left", 3, 50), (fixInvalidNamesBTN, "right", 0, 100),
                            (invalidTexturesBTN, "left", 0, 0), (invalidTexturesBTN, "right", 3, 50),
                            (unpublishedShadersBTN, "left", 3, 50), (unpublishedShadersBTN, "right", 0, 100),
-                           (invalidPivotsBTN, "left", 0, 0), (invalidPivotsBTN, "right", 3, 50),
-                           (fixInvalidPivotsBTN, "left", 3, 50), (fixInvalidPivotsBTN, "right", 0, 100),
-                           (vertexEditsBTN, "left", 0, 0), (vertexEditsBTN, "right", 3, 50),
-                           (fixVertexEditsBTN, "left", 3, 50), (fixVertexEditsBTN, "right", 0, 100),
+                           # (invalidPivotsBTN, "left", 0, 0), (invalidPivotsBTN, "right", 3, 50),
+                           # (fixInvalidPivotsBTN, "left", 3, 50), (fixInvalidPivotsBTN, "right", 0, 100),
+                           # (vertexEditsBTN, "left", 0, 0), (vertexEditsBTN, "right", 3, 50),
+                           # (fixVertexEditsBTN, "left", 3, 50), (fixVertexEditsBTN, "right", 0, 100),
                            (duplicateNodeNamesBTN, "left", 0, 0), (duplicateNodeNamesBTN, "right", 3, 50),
                            (fixDuplicateNodeNamesBTN, "left", 3, 50), (fixDuplicateNodeNamesBTN, "right", 0, 100),
                            (fixInstanceNumbersBTN, "left", 0, 0), (fixInstanceNumbersBTN, "right", 0, 100),
@@ -2189,24 +2192,28 @@ def do():
                            (fixWaitCursorBTN, "left", 0, 0), (fixWaitCursorBTN, "right", 3, 50),
                            (showPublishHelpBTN, "left", 3, 50), (showPublishHelpBTN, "right", 0, 100),
                           ], 
-        attachControl=[ (unpublishedAssetsBTN, "top", 24, clearDisplayBTN), 
-                        (publishedAssetsBTN, "top", 24, refreshBTN), 
+        attachControl=[ (vertexEditsBTN, "top", 7, clearDisplayBTN),
+                        (invalidPivotsBTN, "top", 7, vertexEditsBTN),
+                        (fixInvalidPivotsBTN, "top", 7, vertexEditsBTN),
+                        (unpublishedAssetsBTN, "top", 24, invalidPivotsBTN),
+                        (publishedAssetsBTN, "top", 24, fixInvalidPivotsBTN),
                         (referencedBTN, "top", 7, unpublishedAssetsBTN),
                         (nonReferencedBTN, "top", 7, publishedAssetsBTN),
                         (refEditsBTN, "top", 7, referencedBTN), 
                         (fixRefEditsBTN, "top", 7, referencedBTN),
-                        (replaceAllWithRefBTN, "top", 7, refEditsBTN),
-                        (importAllWithRefBTN, "top", 7, fixRefEditsBTN),
-                        (invalidNamesBTN, "top", 7, replaceAllWithRefBTN),
+                        # (replaceAllWithRefBTN, "top", 7, refEditsBTN),
+                        # (importAllWithRefBTN, "top", 7, fixRefEditsBTN),
+                        (importAllWithRefBTN, "top", 7, refEditsBTN),
+                        (invalidNamesBTN, "top", 7, importAllWithRefBTN),
                         (fixInvalidNamesBTN, "top", 7, importAllWithRefBTN),
                         (invalidTexturesBTN, "top", 7, invalidNamesBTN),
                         (unpublishedShadersBTN, "top", 7, fixInvalidNamesBTN),
-                        (invalidPivotsBTN, "top", 7, invalidTexturesBTN),
-                        (fixInvalidPivotsBTN, "top", 7, unpublishedShadersBTN),
-                        (vertexEditsBTN, "top", 7, invalidPivotsBTN),
-                        (fixVertexEditsBTN, "top", 7, fixInvalidPivotsBTN),
-                        (duplicateNodeNamesBTN, "top", 7, vertexEditsBTN), 
-                        (fixDuplicateNodeNamesBTN, "top", 7, fixVertexEditsBTN),
+                        # (invalidPivotsBTN, "top", 7, invalidTexturesBTN),
+                        # (fixInvalidPivotsBTN, "top", 7, unpublishedShadersBTN),
+                        # (vertexEditsBTN, "top", 7, invalidPivotsBTN),
+                        # (fixVertexEditsBTN, "top", 7, fixInvalidPivotsBTN),
+                        (duplicateNodeNamesBTN, "top", 7, invalidTexturesBTN),
+                        (fixDuplicateNodeNamesBTN, "top", 7, unpublishedShadersBTN),
                         (fixInstanceNumbersBTN, "top", 7, duplicateNodeNamesBTN),
                         (optimizeAndCleanBTN, "top", 7, fixInstanceNumbersBTN),
                         (addGrpToNamesBTN, "top", 7, optimizeAndCleanBTN),
