@@ -57,17 +57,18 @@ def do(nodes=None):
         nodes = [nodes]
         
     cmds.namespace(setNamespace=":")
-    # Try to turn off Viewport 2.0 to prevent fatal errors.
-    try:
-        # making to use currently focused panel and switch pythonically
-        current_view = cmds.getPanel(withFocus=True)
-        print 'attempting to update current view panel:: %s' % current_view
-        cmds.modelEditor(current_view, edit=True,
-                                            rendererName="base_OpenGL_Renderer")
-        print 'switched renderer to base opengl..'
-        #mel.eval('setRendererInModelPanel base_OpenGL_Renderer modelPanel4;')
-    except:
-        pass
+    # Seems to be still causing issues, but appears to work fine for not without
+    # # Try to turn off Viewport 2.0 to prevent fatal errors.
+    # try:
+    #     # making to use currently focused panel and switch pythonically
+    #     current_view = cmds.getPanel(withFocus=True)
+    #     print 'attempting to update current view panel:: %s' % current_view
+    #     cmds.modelEditor(current_view, edit=True,
+    #                                         rendererName="base_OpenGL_Renderer")
+    #     print 'switched renderer to base opengl..'
+    #     #mel.eval('setRendererInModelPanel base_OpenGL_Renderer modelPanel4;')
+    # except:
+    #     pass
     
     # Create a temporary top group.
     topGrp = "tempRefGrp"
