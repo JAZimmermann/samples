@@ -1,4 +1,4 @@
-{%- set file_name = FILE.split('.') -%}
+{%- set file_name = FILE.split('.')[0] -%}
 Hi everyone,
 
 {{file_name|trim}} has been prepped and ready for animation.
