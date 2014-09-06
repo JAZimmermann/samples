@@ -1,0 +1,11 @@
+Category,To,Cc,Bcc,Subject Template,Template File
+tester,johnz@d2.com,,,TESTER:: Hi {{NAME}}!,vad_set_template
+test_vad_set,jb_vad@d2.com,jb_coord@d2.com,,TESTER:: [{{SHOW}}][VAD] Set Publish: {{FILE}},vad_set_template
+vad_set,jb_vad@d2.com,jb_coord@d2.com,,[{{SHOW}}][VAD] Set Publish: {{FILE}},vad_set_template
+vad_chesspiece,jb_vad@d2.com,jb_coord@d2.com,,[{{SHOW}}][VAD] Chesspiece Publish: {{FILE}},vad_chesspiece_template
+vad_maya_skeleton,jb_vad@d2.com,jb_coord@d2.com,,[{{SHOW}}][VAD] Maya Skeleton Publish: {{FILE}},vad_maya_skeleton_template
+vad_anim_rig,,jb_coord@d2.com,,[{{SHOW}}][VAD] Anim Rig Publish: {{FILE}},vad_anim_rig_template
+lab_mobu_rig,jb_lab@d2.com,jb_coord@d2.com,,[{{SHOW}}][LAB] MoBu Rig Publish: {{Character}} {{RigType}},vad_mobu_rig_template
+vad_anim_pub,,jb_coord@d2.com,,[{{SHOW}}][VAD] Anim Publish: {{Character}} {{Anim}},vad_anim_pub_template
+lab_master_scene_prep,jb_lab@d2.com,jb_coord@d2.com,,[{{SHOW}}][LAB] Master Scene Prepped / Order,vad_master_scene_prep_template
+lab_master_scene_pub,jb_lab@d2.com,jb_coord@d2.com,,[{{SHOW}}][LAB] Master Scene Publish: {{FILE}},vad_master_scene_pub_template

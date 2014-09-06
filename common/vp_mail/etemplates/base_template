@@ -1,0 +1,26 @@
+{%- set file_name = FILE.split('.')[0] -%}
+Hi everyone,
+
+{% block content %}
+{{file_name|trim}} has been prepped and ready for animation.
+
+File Path:
+
+"{{FILEPATH}}"
+
+Render:
+
+"{{RENDERPATH}}"
+
+{% endblock content %}
+
+{% block footer %}
+{% if Notes %}
+Reason for Publish / Notes:
+"{{Notes}}"
+
+{% endif %}
+Let me know if you guys have any questions.
+
+{{NAME}}
+{% endblock footer %}

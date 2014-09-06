@@ -1,0 +1,14 @@
+{% extends "base_template" %}
+{% block content %}
+{{file_name|trim}} has been prepped and ready for animation.
+
+
+File Path:
+
+"{{FILEPATH}}"
+{% if RENDERPATH %}
+Render:
+
+"{{RENDERPATH}}"
+{% endif %}
+{% endblock content %}

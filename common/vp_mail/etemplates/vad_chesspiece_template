@@ -1,0 +1,14 @@
+{% extends "base_template" %}
+{% block content %}
+{{file_name|trim}} has been published and ready for animation.
+
+Character:
+{{Character}}
+
+New Version:
+{{Version}}
+
+File Path:
+
+"{{FILEPATH}}"
+{% endblock content %}
