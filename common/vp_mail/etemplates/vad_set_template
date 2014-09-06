@@ -1,17 +1,18 @@
-{%- set file_name = FILE.split('.')[0] -%}
-Hi everyone,
+{% extends "base_template" %}
+{% block content %}
+{{file_name|trim}} has been published and ready for review.
 
-{{file_name|trim}} has been prepped and ready for animation.
+Set:
+{{Set}}
 
+New Version:
+{{Version}}
 
 File Path:
-
 "{{FILEPATH}}"
 
-Render:
-
-"{{RENDERPATH}}"
-
-Let me know if you guys have any questions.
-
-{{NAME}}
+{% if FBXPATH %}
+FBX Path:
+"{{FBXPATH}}"
+{% endif %}
+{% endblock content %}
