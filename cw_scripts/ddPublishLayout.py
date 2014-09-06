@@ -119,6 +119,12 @@ import ddTransferTransformsFromGeo; reload(ddTransferTransformsFromGeo)
 import ddUnlockGeoTransforms; reload(ddUnlockGeoTransforms)
 import edFindVertTransforms; reload(edFindVertTransforms)
 
+apath = "B:/home/johnz/scripts/jbtools"
+if apath not in sys.path:
+    sys.path.insert(2, apath)
+
+from common.vp_mail import publish_email as pub_mail
+
 
 def doAddGrpMetadata(arg=None):
     '''Button: Add Metadata to GRP Nodes.
@@ -967,7 +973,7 @@ def doGetPivotOffsetsList(arg=None):
     doClearDisplay()
     cmds.refresh()
     attrName = "originalPivot"
-        
+
     cmds.waitCursor( state=True )
     allGrps = [x for x in (cmds.ls("*_GRP*", type="transform", long=True) or []) if not "GEO" in x]
     invalidTransforms = ddCheckPivotOffsets.do(allGrps)
@@ -1282,6 +1288,7 @@ def doPublishScene(arg=None):
     Saves maya ascii and fbx files. Removes unused requires statements from ".ma" file.
     '''
     exported = False
+    publish_details = {}
     startingDirectory = ddConstants.LAYOUT_DIR
     startingFileName = ""
     envNull = [x for x in (cmds.listRelatives("env_master", children=True) or []) if cmds.nodeType(x) == "transform" and x.startswith("env")]
@@ -1321,12 +1328,18 @@ def doPublishScene(arg=None):
         if not filename == startingFileName:
             if envNull:
                 cmds.rename(envNull[0], "env_%s_GRP" % filename)
-        
+        publish_details["Set"] = filename.rpartition("_v0")[0]
+        publish_details["Version"] = int((filename.rpartition("_v0")[-1]).replace("_v0", ""))
+
         filename = os.path.join(startingDirectory, "%s.ma" % filename.partition(".")[0])
         if os.path.isfile(filename):
             sys.stdout.write("File already exists: %s. Cancelling...\n" % filename)
             return
-            
+
+        # add file name details
+        publish_details["FILEPATH"] = filename
+        publish_details["FILE"] = os.path.basename(filename)
+
         # Save ".ma" file
         sys.stdout.write('Saving "%s"...\n' % filename)
         cmds.file( rename=filename )
@@ -1335,6 +1348,7 @@ def doPublishScene(arg=None):
         
         # Export fbx file
         fbxFilename = filename.replace(".ma", ".fbx").replace(os.sep, "/")
+        publish_details["FBXPATH"] = fbxFilename
         sys.stdout.write('Exporting fbx file "%s" ...\n' % fbxFilename)
         exported = False
         cmds.select("scene_master", replace=True)
@@ -1372,6 +1386,17 @@ def doPublishScene(arg=None):
                     
     if exported:
         sys.stdout.write("Layout scene published. \n")
+
+        # prep and send publish email
+        publish_details["SHOW"] = os.getenv("SHOW")
+
+        sys.stdout.write("Sending email. \n")
+        set_email = pub_mail.PublishEmail("vad_set")
+        set_email.publish_details = publish_details
+        set_email.build_email()
+        set_email.send_mail()
+
+        # sys.stdout.write("Layout scene published. \n")
         confirm = cmds.confirmDialog(
             title="Done", messageAlign="center", 
             message='Scene has been published.', 
