@@ -22,5 +22,5 @@ Reason for Publish / Notes:
 {% endif %}
 Let me know if you guys have any questions.
 
-{{NAME}}
+{{ARTIST}}
 {% endblock footer %}
