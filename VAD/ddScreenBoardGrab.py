@@ -853,7 +853,7 @@ class CharacterBoardImage(BoardImage):
         # prep regex patterns
         scene_patt = re.compile("char_(%s)_[A-Z]{3}_[a-z]+"
                                         % "|".join(self._charType.values()))
-        char_patt = re.compile("[A-Z]{3}_[a-z]+")
+        char_patt = re.compile("[A-Z]{3}_[a-zA-Z]+")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
         # get scene file
