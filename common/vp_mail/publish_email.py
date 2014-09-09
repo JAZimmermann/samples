@@ -143,3 +143,29 @@ class PublishEmail(object):
 
     def print_message(self):
         print self.mail
+
+
+def test():
+    '''
+    publish email module tester
+    '''
+    # collect publish details expected for templation
+    pub_details = {"SHOW": "DEVTD",
+                   "NAME": "Bobo the monkey",
+                   "FILE": "tester_obj.ma",
+                   "FILEPATH": "B:/show/DEVTD/assets/testing/testing_obj.ma",
+                   "FBXPATH": "B:/show/DEVTD/assets/testing/testing_obj.fbx",
+                   "Set": "0004_JAB_undercove",
+                   "Notes": "'To Start Press Any Key'. Where's the ANY key?"
+                   }
+
+    # initialize instance with specified template category
+    pe_mail = PublishEmail("tester")
+    # pass / assign necessary publish details
+    pe_mail.publish_details = pub_details
+    # process details in order to build mail
+    pe_mail.build_email()
+
+    # attempt to mail specified template and details
+    pe_mail.send_mail()
+    sys.stdout.write("Sent the following mail.. \n%s" % pe_mail.print_message())
