@@ -56,7 +56,7 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         set gui to utilize uic file
         '''
         # locate ui file
-        ui_file = 'vp_environ_v02.ui'
+        ui_file = 'vp_environ_v03.ui'
         ico_file = 'vp_environ.ico'
         cwd = os.path.dirname(os.path.abspath(__file__))
         ui = os.path.join(cwd, 'ui', ui_file)
