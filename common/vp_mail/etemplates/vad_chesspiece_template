@@ -1,6 +1,6 @@
 {% extends "base_template" %}
 {% block content %}
-{{file_name|trim}} has been published and ready for animation.
+{{file_name|trim}} has been published.
 
 Character:
 {{Character}}
@@ -9,6 +9,5 @@ New Version:
 {{Version}}
 
 File Path:
-
 "{{FILEPATH}}"
 {% endblock content %}

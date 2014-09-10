@@ -1,6 +1,6 @@
 {% extends "base_template" %}
 {% block content %}
-{{file_name|trim}} has been published and ready for use in layout scenes.
+{{file_name|trim}} has been published.
 
 Envrionment Asset:
 {{Enviro_Asset}}

@@ -1,6 +1,6 @@
 {% extends "base_template" %}
 {% block content %}
-{{file_name|trim}} has been published and ready for review.
+{{file_name|trim}} has been published.
 
 Set:
 {{Set}}

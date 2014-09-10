@@ -1,15 +1,14 @@
 {%- set file_name = FILE.split('.')[0] -%}
+{%- set artist_first_name = ARTIST.split()[0] -%}
 Hi everyone,
 
 {% block content %}
-{{file_name|trim}} has been prepped and ready for animation.
+{{file_name|trim}} has been published.
 
 File Path:
-
 "{{FILEPATH}}"
 
 Render:
-
 "{{RENDERPATH}}"
 
 {% endblock content %}
@@ -22,5 +21,5 @@ Reason for Publish / Notes:
 {% endif %}
 Let me know if you guys have any questions.
 
-{{ARTIST}}
+{{artist_first_name}}
 {% endblock footer %}
