@@ -428,6 +428,7 @@ def doRenameGroup(node, arg=None):
             name += "_%s" % item
             
     descriptor = "%s%s" % (descriptor[0].lower(), descriptor[1:])
+    original_node_name = node
     name += "_%s%sv%s_GRP_v%03d_1" % (descriptor, assetLetter, assetVariant, int(versionNumber))
     
     newNode = cmds.rename(node, name)
@@ -448,6 +449,8 @@ def doRenameGroup(node, arg=None):
 
         result, override = do_rename_geo_nodes(nodeList, newNode)
         if result == "Cancel All":
+            # rename top node to original name
+            cmds.rename(newNode, original_node_name)
             return
 
         # for nodeName in nodeList:
@@ -470,7 +473,6 @@ def do_rename_geo_nodes(node_list, group_node, divider="GRP"):
     :type   group_node: C{str}
     :param  group_node: name of parent group node
     '''
-    print "testing new rename geo nodes"
     all_mesh_descriptor = ''
     override = False
     result = ""
@@ -496,7 +498,7 @@ def do_rename_geo_nodes(node_list, group_node, divider="GRP"):
                 if result == "Cancel All":
                     return result, override
 
-                if result == "OK To All":
+                if result == "Rename All":
                     all_mesh_descriptor = "%s%s" % (meshDescriptor[0].lower(), meshDescriptor[1:])
                     result = "OK"
 
@@ -598,14 +600,17 @@ def getMeshDescriptor(node, grpNode, override=False, divider="GRP"):
         result = cmds.promptDialog(
                 title="Rename Mesh", 
                 message='Enter mesh descriptor for "%s": ' % currentNode, text=meshDescriptor, 
-                button=["OK", "OK To All", "Cancel", "Cancel All"], 
+                button=["OK", "OK To All", "Rename All", "Cancel", "Cancel All"],
                 defaultButton="OK", cancelButton="Cancel", dismissString="Cancel"
                 )
         if result == "OK":
             meshDescriptor = cmds.promptDialog(query=True, text=True)
         elif result == "OK To All":
             meshDescriptor = cmds.promptDialog(query=True, text=True)
-            # result = "OK"
+            result = "OK"
+            override = True
+        elif result == "Rename All":
+            meshDescriptor = cmds.promptDialog(query=True, text=True)
             override = True
         
     return result, meshDescriptor, override
