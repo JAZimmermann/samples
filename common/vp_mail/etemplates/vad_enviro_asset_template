@@ -1,0 +1,13 @@
+{% extends "base_template" %}
+{% block content %}
+{{file_name|trim}} has been published and ready for use in layout scenes.
+
+Envrionment Asset:
+{{Enviro_Asset}}
+
+New Version:
+{{Version}}
+
+File Path:
+"{{FILEPATH}}"
+{% endblock content %}
