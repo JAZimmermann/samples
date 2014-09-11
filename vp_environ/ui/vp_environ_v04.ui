@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>299</width>
+    <height>161</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Set VP Environment</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QGroupBox" name="wenv_gbox">
+      <property name="minimumSize">
+       <size>
+        <width>277</width>
+        <height>85</height>
+       </size>
+      </property>
+      <property name="toolTip">
+       <string>Enter environment details to be better utilize pipeline tools.</string>
+      </property>
+      <property name="title">
+       <string>Setup Work Environment</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <layout class="QHBoxLayout" name="show_hlayout">
+         <item>
+          <widget class="QLabel" name="show_lbl">
+           <property name="minimumSize">
+            <size>
+             <width>122</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Set Current Show</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="show_cmbx">
+           <property name="minimumSize">
+            <size>
+             <width>121</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Select current show from list of active.</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="email_hlayout">
+         <item>
+          <widget class="QLabel" name="email_lbl">
+           <property name="minimumSize">
+            <size>
+             <width>81</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Enter Email Address</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="email_entry">
+           <property name="minimumSize">
+            <size>
+             <width>113</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Enter your email address, ie. 'dave@hal.net'</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLabel" name="name_lbl">
+           <property name="minimumSize">
+            <size>
+             <width>60</width>
+             <height>16</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Enter Name</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="name_entry">
+           <property name="minimumSize">
+            <size>
+             <width>151</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Enter your name, ie. &quot;John Smith&quot;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="ok_pbutton">
+      <property name="minimumSize">
+       <size>
+        <width>91</width>
+        <height>23</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>OK</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

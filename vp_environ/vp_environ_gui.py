@@ -45,7 +45,8 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         # initialize base details
         self.details = {'SHOW': 'SHOW',
                         'ARTIST': '',
-                        'ARTIST_EMAIL': ''}
+                        'ARTIST_EMAIL': '',
+                        'ARTIST_USERNAME': ''}
 
         # complete gui setup
         self._setupDefaults()
@@ -56,7 +57,7 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         set gui to utilize uic file
         '''
         # locate ui file
-        ui_file = 'vp_environ_v03.ui'
+        ui_file = 'vp_environ_v04.ui'
         ico_file = 'vp_environ.ico'
         cwd = os.path.dirname(os.path.abspath(__file__))
         ui = os.path.join(cwd, 'ui', ui_file)
@@ -77,10 +78,20 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                                             self.name_entry_editingFinished)
         self.ok_pbutton.clicked.connect(self.ok_pbutton_clicked)
 
+    def _check_existing_env_vars(self):
+        '''
+        check to see if environment variables are already exist
+            to possibly auto-populate the fields for user
+        '''
+        for env_key in self.details.keys():
+            if env_key in os.environ and os.getenv(env_key) != "":
+                self.details[env_key] = os.getenv(env_key)
+
     def _setupDefaults(self):
         '''
         setup default gui values
         '''
+        self._check_existing_env_vars()
         self.addShows()
         self.setDefaultTexts()
 
@@ -126,25 +137,26 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                         or not self.validateName():
             return
 
-        # self.get_artist()
+        self.get_artist_username()
 
         for key in self.details:
             self.set_env(key, self.details[key])
 
         self.close()
 
-    # def get_artist(self):
-    #     '''
-    #     get artist from email
-    #     '''
-    #     self.details['ARTIST'] =\
-    #                         self.details['ARTIST_EMAIL'].split('@')[0] or ''
+    def get_artist_username(self):
+        '''
+        get artist from email
+        '''
+        self.details['ARTIST_USERNAME'] =\
+                            self.details['ARTIST_EMAIL'].split('@')[0] or ''
 
     def setDefaultTexts(self):
         '''
         set default text values for gui entry fields element
         '''
         self.email_entry.setText(str(self.details['ARTIST_EMAIL']))
+        self.name_entry.setText(str(self.details['ARTIST']))
 
     def validateShow(self):
         '''
@@ -208,6 +220,13 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         active_shows.sort()
         active_shows.insert(0, '')
         self.addToComboBox(self.show_cmbx, active_shows)
+
+        if self.details['SHOW'] not in ['SHOW', ''] \
+                and self.details['SHOW'] in active_shows:
+            for i in range(len(active_shows)):
+                if self.details['SHOW'] == active_shows[i]:
+                    self.show_cmbx.setCurrentIndex(i)
+                    break
 
     @staticmethod
     def set_env(env_var, env_val):
