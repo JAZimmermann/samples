@@ -30,7 +30,7 @@ if apath not in sys.path:
 
 from common.vp_mail import email_templates, vp_mail, publish_notes
 
-# from vp_mail import email_templates, vp_mail, publish_notes
+# from vir_prod.vp_mail import email_templates, vp_mail, publish_notes
 
 
 class PublishEmail(object):
@@ -151,7 +151,7 @@ def test():
     '''
     # collect publish details expected for templation
     pub_details = {"SHOW": "DEVTD",
-                   "NAME": "Bobo the monkey",
+                   "ARTIST": "Bobo the monkey",
                    "FILE": "tester_obj.ma",
                    "FILEPATH": "B:/show/DEVTD/assets/testing/testing_obj.ma",
                    "FBXPATH": "B:/show/DEVTD/assets/testing/testing_obj.fbx",
