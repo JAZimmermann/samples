@@ -23,11 +23,19 @@
 
 import os
 import re
+import sys
 
 from subprocess import Popen
+
+# make sure package location is available
+apath = os.getenv("PYTHONPATH", "b:/tools/common/python")
+if apath not in sys.path:
+    sys.path.insert(2, apath)
+
 from show import show
 
 from PyQt4 import QtGui, QtCore, uic
+from PyQt4.QtCore import Qt
 
 
 class VP_Environ_Gui(QtGui.QMainWindow):
@@ -47,6 +55,9 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                         'ARTIST': '',
                         'ARTIST_EMAIL': '',
                         'ARTIST_USERNAME': ''}
+
+        # make sure base environment is setup
+        self._check_set_necessary_env_vars()
 
         # complete gui setup
         self._setupDefaults()
@@ -78,7 +89,7 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                                             self.name_entry_editingFinished)
         self.ok_pbutton.clicked.connect(self.ok_pbutton_clicked)
 
-    def _check_existing_env_vars(self):
+    def _check_existing_key_env_vars(self):
         '''
         check to see if environment variables are already exist
             to possibly auto-populate the fields for user
@@ -87,11 +98,26 @@ class VP_Environ_Gui(QtGui.QMainWindow):
             if env_key in os.environ and os.getenv(env_key) != "":
                 self.details[env_key] = os.getenv(env_key)
 
+    def _check_set_necessary_env_vars(self):
+        '''
+        check to see if necessary working environment variables exist
+        '''
+        # for quick access to show root path
+        if 'SHOW_ROOT' not in os.environ:
+            self.set_env('SHOW_ROOT', 'b:/show')
+
+        if 'TOOLS_ROOT' not in os.environ:
+            self.set_env('TOOLS_ROOT', 'b:/tools')
+
+        # for common DD python tools, particularly vir_prod package
+        if 'PYTHONPATH' not in os.environ:
+            self.set_env('PYTHONPATH', 'b:/tools/common/python')
+
     def _setupDefaults(self):
         '''
         setup default gui values
         '''
-        self._check_existing_env_vars()
+        self._check_existing_key_env_vars()
         self.addShows()
         self.setDefaultTexts()
 
@@ -137,11 +163,16 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                         or not self.validateName():
             return
 
+        # display wait cursor while spending time setting env vars
+        QtGui.QApplication.setOverrideCursor(
+                                    QtGui.QCursor(Qt.WaitCursor))
         self.get_artist_username()
 
         for key in self.details:
             self.set_env(key, self.details[key])
 
+        # restore regular cursor
+        QtGui.QApplication.restoreOverrideCursor()
         self.close()
 
     def get_artist_username(self):
@@ -180,7 +211,7 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                 to check against. checking for at least an email address format
         :return C(bool)
         '''
-        if not re.match('\w+@\w+.\w+', self.details['ARTIST_EMAIL']):
+        if not re.match('[\w._]+@\w+.\w+', self.details['ARTIST_EMAIL']):
             msg = '%s is not a valid email address.\n' \
                     % self.details['ARTIST_EMAIL'] \
                     + 'Please re-enter email address.'
@@ -199,10 +230,10 @@ class VP_Environ_Gui(QtGui.QMainWindow):
                 to check against. checking for at least text
         :return C(bool)
         '''
-        if not re.match('\w+@\w+.\w+', self.details['ARTIST_EMAIL']):
-            msg = '%s is not a valid email address.\n' \
-                    % self.details['ARTIST_EMAIL'] \
-                    + 'Please re-enter email address.'
+        if not self.details['ARTIST']:
+            msg = '%s is not a valid name.\n' \
+                    % self.details['ARTIST'] \
+                    + 'Please re-enter artist.'
             nonwin_dialog = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
                                                             'Issue', msg)
             nonwin_dialog.exec_()
@@ -239,7 +270,8 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         :param  env_val: value to set to environment variable
         '''
         try:
-            Popen(['SETX', env_var, env_val], shell=True)
+            setting_env = Popen(['SETX', env_var, env_val], shell=True)
+            setting_env.wait()
             return
         except Exception, e:
             raise e
