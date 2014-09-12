@@ -21,16 +21,21 @@
 # $Author: johnz $
 #
 
+import os
 import smtplib
 import sys
 
-apath = "B:/home/johnz/scripts/jbtools"
+# apath = "B:/home/johnz/scripts/jbtools"
+# if apath not in sys.path:
+#     sys.path.insert(2, apath)
+#
+# from common.vp_mail import email_templates, vp_mail, publish_notes
+
+apath = os.getenv("PYTHONPATH")
 if apath not in sys.path:
     sys.path.insert(2, apath)
 
-from common.vp_mail import email_templates, vp_mail, publish_notes
-
-# from vir_prod.vp_mail import email_templates, vp_mail, publish_notes
+from vir_prod.vp_mail import email_templates, vp_mail, publish_notes
 
 
 class PublishEmail(object):

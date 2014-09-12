@@ -86,6 +86,7 @@ import maya.mel as mel
 
 # PYTHON
 import os
+import re
 import sys
 from functools import partial
 
@@ -119,11 +120,21 @@ import ddTransferTransformsFromGeo; reload(ddTransferTransformsFromGeo)
 import ddUnlockGeoTransforms; reload(ddUnlockGeoTransforms)
 import edFindVertTransforms; reload(edFindVertTransforms)
 
-apath = "B:/home/johnz/scripts/jbtools"
+# apath = "B:/home/johnz/scripts/jbtools"
+# if apath not in sys.path:
+#     sys.path.insert(2, apath)
+#
+# from common.vp_mail import publish_email as pub_mail
+# from common.vp_mail import publish_notes
+# from vp_environ import vp_environment as vpe
+
+apath = os.getenv("PYTHONPATH")
 if apath not in sys.path:
     sys.path.insert(2, apath)
 
-from common.vp_mail import publish_email as pub_mail
+from vir_prod.vp_mail import publish_email as pub_mail
+from vir_prod.vp_mail import publish_notes
+from vir_prod.vp_environ import vp_environment as vpe
 
 
 def doAddGrpMetadata(arg=None):
@@ -1287,8 +1298,12 @@ def doPublishScene(arg=None):
     Button: Publish Scene.
     Saves maya ascii and fbx files. Removes unused requires statements from ".ma" file.
     '''
+    # double check if necessary environment variables exist before continuing
+    vpe.VP_Environment().test()
+
     exported = False
     publish_details = {}
+    publish_details["Notes"] = publish_notes.PublishNotes().notes
     startingDirectory = ddConstants.LAYOUT_DIR
     startingFileName = ""
     envNull = [x for x in (cmds.listRelatives("env_master", children=True) or []) if cmds.nodeType(x) == "transform" and x.startswith("env")]
@@ -1328,10 +1343,26 @@ def doPublishScene(arg=None):
         if not filename == startingFileName:
             if envNull:
                 cmds.rename(envNull[0], "env_%s_GRP" % filename)
-        publish_details["Set"] = filename.rpartition("_v0")[0]
-        publish_details["Version"] = int((filename.rpartition("_v0")[-1]).replace("_v0", ""))
+        # prep regex patterns
+        scene_patt = re.compile("[0-9]{4}_[A-Z]{3}_[a-z]+")
+        version_patt = re.compile("_v([0-9]{2,4})_*")
 
-        filename = os.path.join(startingDirectory, "%s.ma" % filename.partition(".")[0])
+        # attempt to collect set name for email's publish details
+        if scene_patt.search(filename):
+            publish_details["Set"] = scene_patt.search(filename).group()
+        else:
+            publish_details["Set"] = filename.rpartition("_v0")[0]
+
+        # attempt to collect publish version for email's publish details
+        if version_patt.search(filename):
+            publish_details["Version"] = version_patt.search(
+                                                        filename).groups()[0]
+        else:
+            publish_details["Version"] = int((
+                             filename.rpartition("_v0")[-1]).replace("_v0", ""))
+
+        filename = os.path.join(startingDirectory, "%s.ma" \
+                                                % filename.partition(".")[0])
         if os.path.isfile(filename):
             sys.stdout.write("File already exists: %s. Cancelling...\n" % filename)
             return
@@ -1389,6 +1420,8 @@ def doPublishScene(arg=None):
 
         # prep and send publish email
         publish_details["SHOW"] = os.getenv("SHOW")
+        publish_details["ARTIST"] = os.getenv("ARTIST") \
+                                    if os.getenv("ARTIST") else "Some Artist"
 
         sys.stdout.write("Sending email. \n")
         set_email = pub_mail.PublishEmail("vad_set")

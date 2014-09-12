@@ -56,6 +56,7 @@ import maya.mel as mel
 
 # PYTHON
 import os
+import re
 import sys
 import shutil
 
@@ -73,6 +74,23 @@ import ddRemovePivotOffsets; reload(ddRemovePivotOffsets)
 import ddRemoveRequires; reload(ddRemoveRequires)
 import ddScreenGrab; reload(ddScreenGrab)
 import ddUnlockGeoTransforms; reload(ddUnlockGeoTransforms)
+
+# apath = "B:/home/johnz/scripts/jbtools"
+# if apath not in sys.path:
+#     sys.path.insert(2, apath)
+#
+# from common.vp_mail import publish_email as pub_mail
+# from common.vp_mail import publish_notes
+# from vp_environ import vp_environment as vpe
+
+apath = os.getenv("PYTHONPATH")
+if apath not in sys.path:
+    sys.path.insert(2, apath)
+
+from vir_prod.vp_mail import publish_email as pub_mail
+from vir_prod.vp_mail import publish_notes
+from vir_prod.vp_environ import vp_environment as vpe
+
 
 # PLUGINS
 if not cmds.pluginInfo("fbxmaya", query=True, loaded=True):
@@ -484,9 +502,13 @@ def renameAssetNodes(node, oldName, newName, versionStr):
 # end (renameAssetNodes)
 
 
-def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory="environments"):
+def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory="environments", notify=True):
+    # double check if necessary environment variables exist before continuing
+    print "should we notify? %s" % str(notify)
+    vpe.VP_Environment().test()
+
     currentAssetLibrary = ddConstants.ASSET_DIRECTORIES[currentAssetCategory]
-    
+
     # Check if assetLibrary folder exists
     if not os.path.isdir(currentAssetLibrary):
         confirm = cmds.confirmDialog(
@@ -508,7 +530,7 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                     defaultButton="Ok", cancelButton="Ok", dismissString="Ok"
                     )
             return
-        
+
     if not isinstance(nodes, list):
         nodes = [nodes]
     
@@ -529,6 +551,11 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
         invalidNode = ddCheckNames.do(nodes=currentNode, currentAssetCategory=currentAssetCategory)
         valid_textures = ddCheckTextures.do(node=currentNode)[0]
         if not invalidNode and valid_textures:
+            publish_details = {}
+            # no need to grab notes from user if not sending email
+            if notify:
+                publish_details["Notes"] = publish_notes.PublishNotes().notes
+
             validNode = ddRemoveNamespaces.doRemoveNamespaces(node=currentNode)
             topGrpLayer = ddRemoveFromLayers.do(nodes=validNode)[0]
             
@@ -561,12 +588,45 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
             
             if currentAssetLibrary == ddConstants.CHAR_ASSETLIBRARY:
                 exportedNode, exportedPath = exportCharacterAsset(sel)
-            else:            
+                # attempt to collect publish details for character piece
+                charType = {"hero": "hero",
+                            "bg": "background",
+                            "sec": "secondary"}
+                scene_patt = re.compile("char_(%s)_[A-Z]{3}_[a-z]+"
+                                                % "|".join(charType.values()))
+                char_patt = re.compile("[A-Z]{3}_[a-zA-Z]+")
+
+                if scene_patt.search(exportedNode):
+                    publish_details["Character"] = \
+                                        char_patt.search(exportedNode).group()
+                publish_details["Template_Category"] = "vad_chesspiece"
+            else:
                 exportedNode, exportedPath, override = exportAsset(node=validNode, override=False, currentAssetCategory=currentAssetCategory)
-                
+                env_patt = re.compile(
+                        "[a-z]{3}_[a-z]{3}(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
+                if env_patt.search(exportedNode):
+                    publish_details["Enviro_Asset"] = \
+                                    env_patt.search(exportedNode).groups()[-1]
+                publish_details["Template_Category"] = "vad_enviro_asset"
+
             if exportedPath:
                 ddScreenGrab.do(nodes=exportedNode.rpartition("|")[2], currentAssetCategory=currentAssetCategory)
-                
+            else:
+                if currentNode != sel:
+                    cmds.delete(currentNode)
+                sys.stdout.write("Export of %s was Canceled..." % exportedNode)
+                return
+
+            # update publish details with version, file
+            #   and file path information
+            version_patt = re.compile("_v([0-9]{2,4})_*")
+            if version_patt.search(exportedNode):
+                publish_details["Version"] =\
+                            version_patt.search(exportedNode).groups()[0]
+            publish_details["FILEPATH"] = "%s.ma" % exportedPath
+            publish_details["FILE"] = os.path.basename(
+                                                    publish_details["FILEPATH"])
+
             if replaceWithReference and exportedPath:
                 currentSceneFile = cmds.file(query=True, sceneName=True).replace("/", os.sep)
                 exportedFile = "%s.ma" % exportedPath
@@ -625,7 +685,24 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                     cmds.editDisplayLayerMembers(topGrpLayer, exportedNode, noRecurse=True)
                 if nodeParent:
                     exportedNode = cmds.parent(exportedNode, nodeParent[0])[0]
-                                    
+
+            # prep and send publish email
+            publish_details["SHOW"] = os.getenv("SHOW")
+            publish_details["ARTIST"] = os.getenv("ARTIST") \
+                                    if os.getenv("ARTIST") else "Some Artist"
+
+            # send publish email if user specified notification
+            if notify:
+                sys.stdout.write("Sending email. \n")
+                set_email = pub_mail.PublishEmail(
+                                        publish_details["Template_Category"])
+                set_email.publish_details = publish_details
+                set_email.build_email()
+                set_email.send_mail()
+            else:
+                sys.stdout.write(
+                        "Holding off on sending publish email by request. \n")
+
         else:
             if invalidNode:
                 sys.stdout.write("Invalid name %s. Skipping...\n" % invalidNode[0].rpartition("|")[2])
