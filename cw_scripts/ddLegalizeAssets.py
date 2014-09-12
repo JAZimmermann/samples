@@ -283,10 +283,13 @@ def doExportAssets(arg=None):
     '''Button: Export Asset(s).
     '''
     sys.stdout.write("Exporting assets... \n")
+    notify_state = cmds.checkBox("publishNotifyChkBx", query=True, value=True)
     currentAssetCategory = getAssetCategory()
     nodes = getSelectionList()
     if nodes:
-        ddExportAssets.do(nodes=nodes, currentAssetCategory=currentAssetCategory)
+        ddExportAssets.do(nodes=nodes,
+                          currentAssetCategory=currentAssetCategory,
+                          notify=notify_state)
 
 # end (doExportAssets)
 
@@ -601,6 +604,7 @@ def do(defaultCategory="environments"):
     buttonHeight = 30
     colorLt = [0.28, 0.337, 0.375]
     colorDk = [0.2, 0.2, 0.2]
+    colorBrt = [1.0, 0.3708, 0] # neon orange
 
     if cmds.window("legalizeAssetWIN", query=True, exists=True):
         cmds.deleteUI("legalizeAssetWIN")
@@ -635,7 +639,7 @@ def do(defaultCategory="environments"):
     checkTexturesBTN = cmds.button(
             "checkTexturesBTN", label="Check Textures", height=buttonHeight, 
             annotation="Checks if textures files are file format is proper tifs, no color node modifications and can also state if published in assetLibrary. Select one or more GEO or GRP nodes.",
-            parent=mainFL, backgroundColor=colorDk, command=partial(doCheckTextures)
+            parent=mainFL, backgroundColor=colorBrt, command=partial(doCheckTextures)
             )
     
     assetNamerBTN = cmds.button(
@@ -744,11 +748,18 @@ def do(defaultCategory="environments"):
             annotation="Saves out an image of the asset. Select one or more GEO or GRP nodes.", 
             parent=mainFL, backgroundColor=colorDk, command=partial(doScreenGrab)
             )
-    
+
+    publishNotifyChkBx = cmds.checkBox(
+            "publishNotifyChkBx", label="Notify with Publish Email",
+            annotation="Send email notification of published asset.",
+            parent=mainFL, value=True
+            )
+
     exportAssetBTN = cmds.button(
             "exportAssetBTN", label="Export Asset(s)", height=buttonHeight, 
             annotation="Exports assets from scene file. Select one or more GEO or GRP nodes.",  
-            parent=mainFL, backgroundColor=colorLt, command=partial(doExportAssets)
+            parent=mainFL, backgroundColor=colorLt,
+            command=partial(doExportAssets)
             )
 
     helpBTN = cmds.button(
@@ -761,7 +772,8 @@ def do(defaultCategory="environments"):
     cmds.formLayout(mainFL, edit=True, 
         attachForm=[ (assetCategoryRL, "top", 15),
                      (exportAssetBTN, "left", 12), (exportAssetBTN, "right", 12), 
-                     (helpBTN, "left", 12), (helpBTN, "right", 12) ],
+                     (helpBTN, "left", 12), (helpBTN, "right", 12),
+                     (publishNotifyChkBx, "left", 85)],
         
         attachPosition=[ (assetCategoryRL, "left", 12, 0), (assetCategoryRL, "right", 12, 100),
                          
@@ -828,13 +840,15 @@ def do(defaultCategory="environments"):
                         
                         (snapBTN, "top", 7, removeNamespacesBTN),
                         (screenGrabBTN, "top", 7, removeFromLayersBTN),
-                        
-                        (exportAssetBTN, "top", 7, screenGrabBTN), 
+
+                        (publishNotifyChkBx, "top", 7, screenGrabBTN),
+
+                        (exportAssetBTN, "top", 7, publishNotifyChkBx),
 
                         (helpBTN, "top", 7, exportAssetBTN) ] )
     
     # Jiggle window.
-    window = cmds.window("legalizeAssetWIN", e=1, widthHeight=(300, 538))
+    window = cmds.window("legalizeAssetWIN", e=1, widthHeight=(300, 558))
     
     cmds.showWindow(window)
     
