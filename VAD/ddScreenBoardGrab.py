@@ -305,11 +305,15 @@ class BoardView(object):
         '''
         determine current model panel for use
         '''
-        cur_panel = 'modelPanel4'
-        if not mc.modelEditor(cur_panel, exists=True):
-            cur_panel = mc.getPanel(withFocus=True)
+        default_panel = 'modelPanel4'
+        # get correct editor to query panel
+        current_editor = mc.playblast(activeEditor=True)
+        current_panel = mc.modelEditor(current_editor, query=True, panel=True)
 
-        self._current_panel = cur_panel
+        if not mc.modelEditor(current_panel, exists=True):
+            current_panel = default_panel
+
+        self._current_panel = current_panel
 
     def _get_display_defaults(self):
         '''
@@ -397,8 +401,8 @@ class BoardImage(object):
         self._img_quality = None
         self._img_width = None
         self._img_height = None
-        self._thumb_height = None
-        self._thumb_width = None
+        self._scene = None
+        self._version = 1
 
     @property
     def node(self):
@@ -413,15 +417,9 @@ class BoardImage(object):
         get the full publish directory path by combining the
             library and rel paths
         '''
+        print "asset library: %s" % self._asset_library
+        print "rel path: %s" % self.rel_path
         return os.path.join(self._asset_library, self.rel_path)
-
-    @property
-    def pub_thumb_dir(self):
-        '''
-        get the full thumbnail publish directory path by combining the
-            library and rel paths
-        '''
-        return os.path.join(self._image_library, self.rel_path)
 
     @property
     def rel_path(self):
@@ -439,6 +437,40 @@ class BoardImage(object):
         :param  rpath: discovered rel path name to set to
         '''
         self._rel_path = rpath
+
+    @property
+    def scene(self):
+        '''
+        get scene name
+        '''
+        return self._scene
+
+    @scene.setter
+    def scene(self, scene_name):
+        '''
+        set instance scene name
+
+        :type   scene_name: C{str}
+        :param  scene_name: found scene name to be set
+        '''
+        self._scene = scene_name
+
+    @property
+    def version(self):
+        '''
+        get version number
+        '''
+        return self._version
+
+    @version.setter
+    def version(self, version_str):
+        '''
+        set int version value
+
+        :type   version_str: C{str}
+        :param  version_str: found version string to be set as an int
+        '''
+        self._version = int(version_str)
 
     @property
     def img_extension(self):
@@ -529,39 +561,6 @@ class BoardImage(object):
         '''
         return (self.img_width, self.img_height)
 
-    @property
-    def thumb_height(self):
-        '''
-        get thumbnail height dimension
-        '''
-        return self._thumb_height
-
-    @thumb_height.setter
-    def thumb_height(self, height):
-        '''
-        set thumbnail height to specified dimension
-
-        :type   height: C{int}
-        :param  height: dimension to use
-        '''
-        self._thumb_height = height
-
-    @property
-    def thumb_width(self):
-        '''
-        get thumbnail width dimension
-        '''
-        return self._thumb_width
-
-    @thumb_width.setter
-    def thumb_width(self, width):
-        '''
-        set thumbnail width to specified dimension
-
-        :type   width: C{int}
-        :param  width: dimension to use
-        '''
-        self._thumb_width = width
 
     def use_panel(self):
         '''
@@ -600,7 +599,8 @@ class BoardImage(object):
             for pdir in pub_dirs:
                 pub_path = os.path.join(pub_path, pdir)
                 if not os.path.exists(pub_path):
-                    print 'directory %s, does not exist. Creating...' % pub_path
+                    sys.stdout.write(
+                        'directory %s, does not exist. Creating...' % pub_path)
                     os.mkdir(pub_path)
         except Exception, e:
             # mc.confirmDialog(
@@ -633,48 +633,11 @@ class LayoutBoardImage(BoardImage):
         super(LayoutBoardImage, self).__init__(node, asset_category)
         self._asset_library = ddConstants.LAYOUT_DIR
         self._use_path = use_path
-        self._scene = None
-        self._version = 1
-        # self._img_file = None
         self.img_quality = 80
         self.img_height = 1080
         self.img_width = 1920
 
         self.determine_relative_path()
-
-    @property
-    def scene(self):
-        '''
-        get scene name
-        '''
-        return self._scene
-
-    @scene.setter
-    def scene(self, scene_name):
-        '''
-        set instance scene name
-
-        :type   scene_name: C{str}
-        :param  scene_name: found scene name to be set
-        '''
-        self._scene = scene_name
-
-    @property
-    def version(self):
-        '''
-        get version number
-        '''
-        return self._version
-
-    @version.setter
-    def version(self, version_str):
-        '''
-        set int version value
-
-        :type   version_str: C{str}
-        :param  version_str: found version string to be set as an int
-        '''
-        self._version = int(version_str)
 
     @property
     def img_file(self):
@@ -753,58 +716,156 @@ class LayoutBoardImage(BoardImage):
                   " Make sure scene is either in node name or file path.")
 
 
-class CharacterBoardImage(BoardImage):
-    def __init__(self, node=None, asset_category='characters'):
-        super(CharacterBoardImage, self).__init__(node, asset_category)
-        self._charType = {"hero": "hero", "bg": "background", "sec": "secondary"}
-        self._chesspieceTypes = ["CPF", "CPO", "CPD", "CPS"]
-        self._version = 1
-        self._scene = None
-        self._character = None
-        self._img_file = None
+class AssetBoardImage(BoardImage):
+    '''
+    deals with the processing of a image name for a screen grab of an asset
+    '''
+    def __init__(self, node=None, asset_category=None):
+        '''
+        initialize instance variables
+
+        :type   node: C{str}
+        :param  node: master scene node object, for help with naming
+        :type   asset_category: C{str}
+        :param  asset_category: category for use with determining asset / image
+                        library for use.
+        '''
+        super(AssetBoardImage, self).__init__(node, asset_category)
+        self._rel_thumb_path = None
+        self._thumb_height = None
+        self._thumb_width = None
+
+        # set default values
         self.img_height = 768
         self.img_width = 1024
         self.img_quality = 100
         self.thumb_height = 144
         self.thumb_width = 144
 
+        # raise Exception("Class not yet implemented.  Needs further work.")
+
+    @property
+    def rel_thumb_path(self):
+        '''
+        get the current rel path
+        '''
+        return self._rel_thumb_path
+
+    @rel_thumb_path.setter
+    def rel_thumb_path(self, rpath):
+        '''
+        set to the specified relpath
+
+        :type   rpath: C[str}
+        :param  rpath: discovered rel path name to set to
+        '''
+        self._rel_thumb_path = rpath
+
+    @property
+    def thumb_height(self):
+        '''
+        get thumbnail height dimension
+        '''
+        return self._thumb_height
+
+    @thumb_height.setter
+    def thumb_height(self, height):
+        '''
+        set thumbnail height to specified dimension
+
+        :type   height: C{int}
+        :param  height: dimension to use
+        '''
+        self._thumb_height = height
+
+    @property
+    def thumb_width(self):
+        '''
+        get thumbnail width dimension
+        '''
+        return self._thumb_width
+
+    @thumb_width.setter
+    def thumb_width(self, width):
+        '''
+        set thumbnail width to specified dimension
+
+        :type   width: C{int}
+        :param  width: dimension to use
+        '''
+        self._thumb_width = width
+
+    @property
+    def pub_thumb_dir(self):
+        '''
+        get the full thumbnail publish directory path by combining the
+            library and rel paths
+        '''
+        return os.path.join(self._image_library, self._rel_thumb_path)
+
+    def verify_path_dirs_exist(self, pub_path, extra_dirs=None,
+                                                    use_thumb_rel_path=False):
+        '''
+        verify that the full path exists on disk
+
+        :type   pub_path: C{str}
+        :param  pub_path: initial starting publish path to extend
+        :type   extra_dirs: C{list}
+        :param  extra_dirs: *OPTIONAL* a set of extra directories to
+                        extend main path that should also exist
+        :type   use_thumb_path: C{bool}
+        :param  use_thumb_path: use thumbnail's relative path instead
+        '''
+        try:
+            # collect path elements for verification
+            if use_thumb_rel_path:
+                pub_dirs = self.rel_thumb_path.split(os.sep)
+            else:
+                pub_dirs = self.rel_path.split(os.sep)
+            # also make sure any extra required directories exist
+            if extra_dirs:
+                pub_dirs += extra_dirs
+
+            # verify if publish directories exist, if not create
+            for pdir in pub_dirs:
+                pub_path = os.path.join(pub_path, pdir)
+                if not os.path.exists(pub_path):
+                    sys.stdout.write(
+                        'directory %s, does not exist. Creating...' % pub_path)
+                    os.mkdir(pub_path)
+        except Exception, e:
+            # mc.confirmDialog(
+            #         title='Path Error',
+            #         message='Issue creating/validating publish path. %s' % e,
+            #         button=['OK'],
+            #         defaultButton='OK')
+            raise e
+
+
+class CharacterBoardImage(AssetBoardImage):
+    '''
+    deals with the processing of a image name for a
+        screen grab of a character asset
+    '''
+    def __init__(self, node=None, asset_category='characters'):
+        '''
+        initialize instance variables
+
+        :type   node: C{str}
+        :param  node: master scene node object, for help with naming
+        :type   asset_category: C{str}
+        :param  asset_category: category for use with determining asset / image
+                        library for use. By default this is characters
+        '''
+        super(CharacterBoardImage, self).__init__(node, asset_category)
+        self._charType = {"hero": "hero", "bg": "background", "sec": "secondary"}
+        self._chesspieceTypes = ["CPF", "CPO", "CPD", "CPS"]
+        self._character = None
+        self._img_file = None
+
         self.determine_relative_path()
 
         # raise Exception("Class not yet implemented.  Needs further work.")
-
-    # @property
-    # def thumb_height(self):
-    #     '''
-    #     get thumbnail height dimension
-    #     '''
-    #     return self._thumb_height
-    #
-    # @thumb_height.setter
-    # def thumb_height(self, height):
-    #     '''
-    #     set thumbnail height to specified dimension
-    #
-    #     :type   height: C{int}
-    #     :param  height: dimension to use
-    #     '''
-    #     self._thumb_height = height
-    #
-    # @property
-    # def thumb_width(self):
-    #     '''
-    #     get thumbnail width dimension
-    #     '''
-    #     return self._thumb_width
-    #
-    # @thumb_width.setter
-    # def thumb_width(self, width):
-    #     '''
-    #     set thumbnail width to specified dimension
-    #
-    #     :type   width: C{int}
-    #     :param  width: dimension to use
-    #     '''
-    #     self._thumb_width = width
 
     @property
     def character(self):
@@ -822,40 +883,6 @@ class CharacterBoardImage(BoardImage):
         :param  char: character name to use
         '''
         self._character = char
-
-    @property
-    def scene(self):
-        '''
-        get scene name
-        '''
-        return self._scene
-
-    @scene.setter
-    def scene(self, scene_name):
-        '''
-        set instance scene name
-
-        :type   scene_name: C{str}
-        :param  scene_name: found scene name to be set
-        '''
-        self._scene = scene_name
-
-    @property
-    def version(self):
-        '''
-        get version number
-        '''
-        return self._version
-
-    @version.setter
-    def version(self, version_str):
-        '''
-        set int version value
-
-        :type   version_str: C{str}
-        :param  version_str: found version string to be set as an int
-        '''
-        self._version = int(version_str)
 
     @property
     def img_file(self):
@@ -909,6 +936,7 @@ class CharacterBoardImage(BoardImage):
         if self._use_path:
             # replace any found bad path separators in user provided path
             self.rel_path = self._use_path.replace("\\", "/")
+            self.rel_thumb_path = self.rel_path
             # reset asset library as it will not be used
             self._asset_library = ''
             self.verify_path_dirs_exist('')
@@ -917,12 +945,15 @@ class CharacterBoardImage(BoardImage):
         dir_pieces = [x for x in self.scene.rpartition('_')[0]\
                                     .split(self.character)[0].split('_') \
                                     if x and x != "char"]
+        print "dir pieces:: %s" % str(dir_pieces)
         dir_build = os.sep.join(dir_pieces)
         self.rel_path = os.path.join(dir_build, self.character)
+        self.rel_thumb_path = os.path.join(dir_build)
 
         # prep / verify paths (thumbnail and main locations)
         #   exist based on details discovered
-        self.verify_path_dirs_exist(self._image_library) # thumbnail
+        self.verify_path_dirs_exist(self._image_library,
+                                            use_thumb_rel_path=True) # thumbnail
 
         # rel path is normally expected to include published directory
         main_extras = ["chesspiece", "published"]
@@ -964,105 +995,52 @@ class CharacterBoardImage(BoardImage):
                             "node name or file path.")
 
 
-class EnvironmentBoardImage(BoardImage):
+class EnvironmentBoardImage(AssetBoardImage):
+    '''
+    deals with the processing of a image name for a
+        screen grab of an environment asset
+    '''
     def __init__(self, node=None, asset_category='environments'):
+        '''
+        initialize instance variables
+
+        :type   node: C{str}
+        :param  node: master scene node object, for help with naming
+        :type   asset_category: C{str}
+        :param  asset_category: category for use with determining asset / image
+                        library for use. By default this is environments
+        '''
         super(EnvironmentBoardImage, self).__init__(node, asset_category)
-        self._version = 1
-        self._scene = None
         self._img_file = None
-        self.img_height = 768
-        self.img_width = 1024
-        self.thumb_height = 144
-        self.thumb_width = 144
+        self._enviro_asset = None
 
         self.determine_relative_path()
 
         # raise Exception("Class not yet implemented.  Needs further work.")
 
-    # @property
-    # def thumb_height(self):
-    #     '''
-    #     get thumbnail height dimension
-    #     '''
-    #     return self._thumb_height
-    #
-    # @thumb_height.setter
-    # def thumb_height(self, height):
-    #     '''
-    #     set thumbnail height to specified dimension
-    #
-    #     :type   height: C{int}
-    #     :param  height: dimension to use
-    #     '''
-    #     self._thumb_height = height
-    #
-    # @property
-    # def thumb_width(self):
-    #     '''
-    #     get thumbnail width dimension
-    #     '''
-    #     return self._thumb_width
-    #
-    # @thumb_width.setter
-    # def thumb_width(self, width):
-    #     '''
-    #     set thumbnail width to specified dimension
-    #
-    #     :type   width: C{int}
-    #     :param  width: dimension to use
-    #     '''
-    #     self._thumb_width = width
-
     @property
-    def scene(self):
+    def enviro_asset(self):
         '''
-        get scene name
+        get environment asset name
         '''
-        return self._scene
+        return self._enviro_asset
 
-    @scene.setter
-    def scene(self, scene_name):
+    @enviro_asset.setter
+    def enviro_asset(self, asset):
         '''
-        set instance scene name
+        set environment asset name
 
-        :type   scene_name: C{str}
-        :param  scene_name: found scene name to be set
+        :type   asset: C{str}
+        :param  asset: found environment asset name to be set
         '''
-        self._scene = scene_name
-
-    @property
-    def version(self):
-        '''
-        get version number
-        '''
-        return self._version
-
-    @version.setter
-    def version(self, version_str):
-        '''
-        set int version value
-
-        :type   version_str: C{str}
-        :param  version_str: found version string to be set as an int
-        '''
-        self._version = int(version_str)
+        self._enviro_asset = asset
 
     @property
     def img_file(self):
         '''
         get the full image file name
         '''
-        return self._img_file
-
-    @img_file.setter
-    def img_file(self, iname):
-        '''
-        set the full image file name, includes image prefix,
-            unique name (typically name of bookmark), version and file extension
-        :type   iname: C{str}
-        :param  iname: name string to be applied to full image naming
-        '''
-        self._img_file = "%s_%s_v%03d.%s" % (self.img_prefix, iname,
+        return "%s_v%03d.%s" % (self.img_prefix,
                                              self.version, self.img_extension)
 
     @property
@@ -1072,6 +1050,13 @@ class EnvironmentBoardImage(BoardImage):
         '''
         return os.path.join(self.pub_dir, self.img_file)
 
+    @property
+    def full_pub_thumb_path(self):
+        '''
+        get a full publish path that includes all directories and image file
+        '''
+        return os.path.join(self.pub_thumb_dir, self.img_file)
+
     def determine_relative_path(self):
         '''
         determine the relative path value for scene, ie. the remaining path
@@ -1079,25 +1064,33 @@ class EnvironmentBoardImage(BoardImage):
         '''
         # collect naming details
         self._determine_scene_version()
-        # images will be prefixed with only the scene number, dropping the set
-        self.img_prefix = self.scene.rpartition('_')[0]
+        # images will be prefixed with asset name
+        self.img_prefix = self.enviro_asset
 
         # process path passed by user
         if self._use_path:
             # replace any found bad path separators in user provided path
             self.rel_path = self._use_path.replace("\\", "/")
+            self.rel_thumb_path = self.rel_path
             # reset asset library as it will not be used
             self._asset_library = ''
             self.verify_path_dirs_exist('')
             return
 
+        # split and get relative path directories from found scene object
+        dir_pieces = [x for x in self.scene.rpartition('_')[0]\
+                                    .split(self.enviro_asset)[0].split('_')]
+        print "dir pieces:: %s" % str(dir_pieces)
+        dir_build = os.sep.join(dir_pieces)
+        self.rel_path = os.path.join(dir_build)
+
         # prep / verify paths (thumbnail and main locations)
         #   exist based on details discovered
-        self.rel_path = self.scene
-        self.verify_path_dirs_exist(self._image_library) # thumbnail
+        self.rel_thumb_path = self.rel_path
+        self.verify_path_dirs_exist(self._image_library,
+                                            use_thumb_rel_path=True) # thumbnail
 
         # rel path is normally expected to include published directory
-        self.rel_path = os.path.join(self.rel_path, "published")
         self.verify_path_dirs_exist(self._asset_library) # main
 
     def _determine_scene_version(self):
@@ -1108,6 +1101,7 @@ class EnvironmentBoardImage(BoardImage):
         # prep regex patterns
         scene_patt = re.compile(
                         "[a-z]{3}_[a-z]{3}(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
+        environ_asset_patt = re.compile("([a-zA-Z]+[A-Z]v[A-Z])")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
         # get scene file
@@ -1122,6 +1116,7 @@ class EnvironmentBoardImage(BoardImage):
                 else:
                     self.scene = scene_patt.search(scene_obj).group()
                 found_all += 1
+                self.enviro_asset = environ_asset_patt.search(scene_obj).group()
             if version_patt.search(scene_obj):
                 self.version = version_patt.search(scene_obj).groups()[0]
                 found_all += 1
@@ -1135,6 +1130,10 @@ class EnvironmentBoardImage(BoardImage):
 
 
 class ScreenBoard(object):
+    '''
+    deals with the processing of screen board grabs for specified item,
+        creating image as well as thumbnail image if requested
+    '''
     def __init__(self, image_path=None, thumb_path=None):
         '''
         initialize instance
@@ -1151,50 +1150,110 @@ class ScreenBoard(object):
 
     @property
     def image_path(self):
+        '''
+        get a full publish path that includes all directories and image file
+        '''
         return self._image_path
 
     @image_path.setter
     def image_path(self, img_path):
+        '''
+        set the full publish path to specified path
+
+        :type   img_path: C{str}
+        :param  img_path: specified path to save image to
+        '''
         self._image_path = img_path
 
     @property
     def image_ext(self):
+        '''
+        get the image extension
+        '''
         return self._image_ext
 
     @image_ext.setter
     def image_ext(self, image_ext):
+        '''
+        set to the specified image extension
+
+        :type   ext: C{str}
+        :param  ext: specified image extension to utilize
+        '''
         self._image_ext = image_ext
 
     @property
     def quality(self):
+        '''
+        get image quality
+
+        :type   quality: C{int}
+        :param  quality: image quality to be used
+        '''
         return self._quality
 
     @quality.setter
     def quality(self, image_quality):
+        '''
+        set image quality to specified value
+
+        :type   quality: C{int}
+        :param  quality: image quality to be used
+        '''
         self._quality = image_quality
 
     @property
     def width_height(self):
+        '''
+        get tuple/list with current width and height values
+        '''
         return self._width_height
 
     @width_height.setter
     def width_height(self, img_width_height):
+        '''
+        set tuple/list with current width and height values
+
+        :type   img_width_height: C{tuple} or C{list}
+        :param  img_width_height: tuple/list of current width and height values
+                                    to set
+        '''
         self._width_height = img_width_height
 
     @property
     def thumb_width_height(self):
+        '''
+        get tuple/list with current thumbnail width and height values
+        '''
         return self._thumb_width_height
 
     @thumb_width_height.setter
     def thumb_width_height(self, img_width_height):
+        '''
+        set tuple/list with current width and height values
+
+        :type   img_width_height: C{tuple} or C{list}
+        :param  img_width_height: tuple/list of current width and height values
+                                    to set
+        '''
         self._thumb_width_height = img_width_height
 
     @property
     def thumb_image_path(self):
+        '''
+        get a full publish thumbnail path that includes all directories
+            and image file
+        '''
         return self._thumb_image_path
 
     @thumb_image_path.setter
     def thumb_image_path(self, thumb_path):
+        '''
+        set the full thumbnail publish path to specified path
+
+        :type   thumb_path: C{str}
+        :param  thumb_path: specified path to save thumbnail image to
+        '''
         self._thumb_image_path = thumb_path
 
     def use_board_image(self, board_image):
@@ -1205,14 +1264,10 @@ class ScreenBoard(object):
         :param board_image: specific BoardImage variant object to reference
                                 capture details
         '''
-        print "using %s" % str(board_image)
         self.image_path = board_image.full_pub_path
         self.image_ext = board_image.img_extension
         self.thumb_image_path = board_image.full_pub_thumb_path
-        print self.image_path
-        print self.thumb_image_path
 
-        print "retrieving board's secondary values"
         self.quality = board_image.img_quality
         self.width_height = (board_image.img_width, board_image.img_height)
         self.thumb_width_height = (board_image.thumb_width,
@@ -1258,25 +1313,6 @@ class ScreenBoard(object):
                 widthHeight=self.width_height)
 
 
-# def ddScreenBoardGrab(image_path, quality=40, width_height=(0,0)):
-#     '''
-#     generate screen grab for specified path / board
-#
-#     :type   image_path: C{str}
-#     :param  image_path: path to save screen board
-#     :type   quality: C{int}
-#     :param  quality: expected image quality
-#     :type   width_height: C{tuple}
-#     :param  width_height: expected width and height values for resulting image;
-#                             values of 0 means current panel size
-#     '''
-#     mc.playblast(
-#             frame=1, format="image", completeFilename=image_path,
-#             clearCache=True, viewer=False, showOrnaments=False,
-#             compression="jpg", quality=quality, percent=100,
-#             widthHeight=width_height)
-
-
 def do_layout_boards(use_path=None, exclude_prefixes=[],
                      exclude_postfixes=[], use_panel=False):
     '''
@@ -1304,6 +1340,7 @@ def do_layout_boards(use_path=None, exclude_prefixes=[],
         sel_node = sel[1]
 
     # prepping camera details
+    sys.stdout.write("Prepping the board camera to utilize %s" % sel_cam)
     cam = BoardCamera()
     cam.camera = sel_cam
     cam.use_exclude_prefixes(exclude_prefixes)
@@ -1312,31 +1349,31 @@ def do_layout_boards(use_path=None, exclude_prefixes=[],
     cam.bookmarks = cam.all_bookmarks
 
     # prepping image details
+    sys.stdout.write("Prepping layout board image for selected node %s"
+                                                                    % sel_node)
     set_image = LayoutBoardImage(sel_node, use_path=use_path)
     if use_panel:
         set_image.use_panel()
 
     # prepping panel view setup
+    sys.stdout.write("Prepping the board view")
     bview = BoardView(cam.camera)
     bview.prep_view()
 
-    print 'about to process %02d bookmarks for cam %s'\
-                                            % (len(cam.bookmarks), cam.camera)
+    sys.stdout.write('About to process %02d bookmarks for cam %s'\
+                                            % (len(cam.bookmarks), cam.camera))
     for bmark in cam.bookmarks:
-        print 'processing %s' % bmark
+        sys.stdout.write('processing %s' % bmark)
         cam.set_to_bookmark(bmark)
         set_image.img_file = bmark
-        print 'grabbing %s' % set_image.full_pub_path
+        sys.stdout.write('grabbing %s' % set_image.full_pub_path)
 
         # prepping screen board
         screen_board = ScreenBoard()
         screen_board.use_board_image(set_image)
         screen_board.grab()
-        # ddScreenBoardGrab(set_image.full_pub_path,
-        #                     set_image.img_quality,
-        #                     set_image.width_height)
 
-    print 'completed processing bookmarks... resetting environment...'
+    sys.stdout.write('completed processing bookmarks.. resetting environment..')
     bview.reset_view()
     cam.reset_original()
 
@@ -1345,7 +1382,9 @@ def get_current_camera():
     '''
     retrieve currently active camera
     '''
-    current_panel = mc.getPanel(withFocus=True)
+    # get correct editor and panel to query current / last used camera
+    current_editor = mc.playblast(activeEditor=True)
+    current_panel = mc.modelEditor(current_editor, query=True, panel=True)
 
     try:
         current_cam = mc.modelPanel(current_panel, query=True, camera=True)
@@ -1363,30 +1402,26 @@ def do_boards(nodes=None, current_asset_category="environments"):
     :type   current_asset_category: C{str}
     :param  current_asset_category: asset category type to process
     '''
-    print "nodes: %s" % nodes
     if not nodes:
         nodes = mc.ls(selection=True, long=True)
 
-    print "nodes: %s" % nodes
     if not isinstance(nodes, list):
         nodes = [nodes]
 
-    print "nodes: %s" % nodes
+    sys.stdout.write("About to process nodes: %s" % nodes)
     # prepping camera details
     current_cam = get_current_camera()
     cam = BoardCamera()
     cam.camera = current_cam
 
     for node in nodes:
-        print "processing node: %s" % node
+        sys.stdout.write("processing node, %s, as category: %s"
+                                            % (node, current_asset_category))
         asset_board = None
         if current_asset_category == "characters":
-            # do_character_boards(node, cam)
             asset_board = CharacterBoardImage(node)
-            print "full pub path:: %s" % asset_board.full_pub_path
         elif current_asset_category == "environments":
             asset_board = EnvironmentBoardImage(node)
-            #do_character_boards(node, cam)
         else:
             raise TypeError("Asset category %s, is not either type " \
                                             + "'characters' or 'environments'.")
@@ -1397,24 +1432,25 @@ def do_boards(nodes=None, current_asset_category="environments"):
         mc.select(deselect=True)
         mc.select(node)
 
-        print "prepping camera..."
+        sys.stdout.write("prepping camera %s..." % current_cam)
         cam.prep_camera()
 
-        print 'prepping board view to isolate asset'
+        sys.stdout.write('prepping board view to isolate asset')
         # prepping panel view setup
         bview = BoardView(cam.camera, isolate_objs=True)
         bview.prep_view()
 
-        print 'prepping screen board...'
+        sys.stdout.write('prepping screen board...')
         # prepping screen board
         screen_board = ScreenBoard()
-        print 'setting use board...'
+        sys.stdout.write('setting use board...')
         screen_board.use_board_image(asset_board)
-        print 'grabbing screen board...'
+        sys.stdout.write('now grabbing screen board...')
         screen_board.grab()
         screen_board.grab_thumbnail()
 
         # resetting to previous environment settings for view
+        sys.stdout.write("resetting views..")
         bview.reset_view()
 
         # clear selection
