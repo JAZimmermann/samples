@@ -75,21 +75,22 @@ import ddRemoveRequires; reload(ddRemoveRequires)
 import ddScreenGrab; reload(ddScreenGrab)
 import ddUnlockGeoTransforms; reload(ddUnlockGeoTransforms)
 
-# apath = "B:/home/johnz/scripts/jbtools"
-# if apath not in sys.path:
-#     sys.path.insert(2, apath)
-#
-# from common.vp_mail import publish_email as pub_mail
-# from common.vp_mail import publish_notes
-# from vp_environ import vp_environment as vpe
-
-apath = os.getenv("PYTHONPATH")
+apath = "B:/home/johnz/scripts/jbtools"
 if apath not in sys.path:
     sys.path.insert(2, apath)
 
-from vir_prod.vp_mail import publish_email as pub_mail
-from vir_prod.vp_mail import publish_notes
-from vir_prod.vp_environ import vp_environment as vpe
+from common.vp_mail import publish_email as pub_mail
+from common.vp_mail import publish_notes
+from vp_environ import vp_environment as vpe
+from VAD import ddScreenBoardGrab
+
+# apath = os.getenv("PYTHONPATH")
+# if apath not in sys.path:
+#     sys.path.insert(2, apath)
+#
+# from vir_prod.vp_mail import publish_email as pub_mail
+# from vir_prod.vp_mail import publish_notes
+# from vir_prod.vp_environ import vp_environment as vpe
 
 
 # PLUGINS
@@ -610,7 +611,10 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                 publish_details["Template_Category"] = "vad_enviro_asset"
 
             if exportedPath:
-                ddScreenGrab.do(nodes=exportedNode.rpartition("|")[2], currentAssetCategory=currentAssetCategory)
+                ddScreenBoardGrab.do_boards(
+                                    nodes=exportedNode.rpartition("|")[2],
+                                    current_asset_category=currentAssetCategory)
+                # ddScreenGrab.do(nodes=exportedNode.rpartition("|")[2], currentAssetCategory=currentAssetCategory)
             else:
                 if currentNode != sel:
                     cmds.delete(currentNode)
