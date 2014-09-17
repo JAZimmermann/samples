@@ -1100,7 +1100,7 @@ class EnvironmentBoardImage(AssetBoardImage):
         '''
         # prep regex patterns
         scene_patt = re.compile(
-                        "[a-z]{3}_[a-z]{3}(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
+                    "[a-z]{3,4}(_[a-z]{3}(_[a-z]+)*)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
         environ_asset_patt = re.compile("([a-zA-Z]+[A-Z]v[A-Z])")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
@@ -1125,7 +1125,7 @@ class EnvironmentBoardImage(AssetBoardImage):
 
         if not self.scene:
             raise Exception("Scene could not be determined. " + \
-                            "Make sure character name is either in " + \
+                            "Make sure environment asset name is either in " + \
                             "node name or file path.")
 
 
