@@ -152,15 +152,18 @@ def checkGeoName(node):
     nodeList = [x for x in children if cmds.nodeType(x) == "transform"] or []
     for nodeName in nodeList:
         if "GRP" in nodeName:
+            print "GRP name in %s" % nodeName
             return False
             
         # Check the child GEO name: beginning of GEO name must match beginning of GRP name
         if not nodeName.rpartition("|")[2].startswith(assetName) or not divider in nodeName:
+            print "%s does not start with asset name %s or divider %s not present" % (nodeName, assetName, divider)
             return False
             
         mesh, suffix = nodeName.rpartition("|")[2].split(divider)
         # Check the child GEO name: must not contain version number. Option to rename.
         if suffix.startswith("v") or not suffix == number:
+            print "%s suffix %s starts with 'v' or is not equal to number %s" % (nodeName, suffix, number)
             return False
             
     return True
