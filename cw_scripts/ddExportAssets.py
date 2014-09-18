@@ -91,6 +91,7 @@ from VAD import ddScreenBoardGrab
 # from vir_prod.vp_mail import publish_email as pub_mail
 # from vir_prod.vp_mail import publish_notes
 # from vir_prod.vp_environ import vp_environment as vpe
+# from mayatools.VAD import ddScreenBoardGrab; reload(ddScreenBoardGrab)
 
 
 # PLUGINS
