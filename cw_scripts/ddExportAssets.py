@@ -568,7 +568,7 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
             returnedNodes = ddRemovePivotOffsets.do(nodes=validNode, returnToPos=False, currentAssetCategory=currentAssetCategory)
             if returnedNodes:
                 validNode = returnedNodes[0]
-            
+
             ddAddGeoMetadata.do(nodes=validNode)
             ddLockGeoTransforms.do(nodes=validNode)
             advancedAssets = cmds.ls(type="container", long=True)
@@ -648,8 +648,10 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
                 confirm = cmds.confirmDialog(
                         title="Warning", messageAlign="center", 
                         message="Delete original GRP?", 
-                        button=["Ok", "Cancel"], 
-                        defaultButton="Ok", cancelButton="Cancel", dismissString="Cancel"
+                        button=["Ok", "Keep Original"],
+                        defaultButton="Ok",
+                        cancelButton="Keep Original",
+                        dismissString="Keep Original"
                         )
                 if confirm == "Ok":
                     cmds.delete(exportedNode)
