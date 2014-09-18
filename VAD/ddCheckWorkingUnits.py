@@ -60,7 +60,8 @@ def notify_wrong_units(expected, current):
     msg = "Your scene is currently in the wrong working units." \
           + "\nCurrently in %ss." % working_units[current] \
           + "\nPlease make sure to change to the correct expected" \
-          + " working units, %ss" % working_units[expected]
+          + " working units, %ss." % working_units[expected] \
+          + "\nThis *WILL* cause issues if you continue without fixing."
 
     warnings.warn(msg, WorkingUnitsWarning)
 
