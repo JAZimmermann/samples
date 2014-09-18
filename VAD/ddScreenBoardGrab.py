@@ -29,12 +29,12 @@ import os
 import re
 import sys
 
-jpath = "B:/home/johnz/scripts/jbtools"
-if jpath not in sys.path:
-    sys.path.insert(2, jpath)
-from cw_scripts import ddConstants
+#jpath = "B:/home/johnz/scripts/jbtools"
+#if jpath not in sys.path:
+#    sys.path.insert(2, jpath)
+#from cw_scripts import ddConstants
 
-# from mayatools.VAD import ddConstants
+from mayatools.VAD import ddConstants
 
 
 class BoardCamera(object):
@@ -1100,7 +1100,7 @@ class EnvironmentBoardImage(AssetBoardImage):
         '''
         # prep regex patterns
         scene_patt = re.compile(
-                    "[a-z]{3,4}(_[a-z]{3}(_[a-z]+)*)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
+                    "[a-z]{3,4}(_[a-z]{3})*(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
         environ_asset_patt = re.compile("([a-zA-Z]+[A-Z]v[A-Z])")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
