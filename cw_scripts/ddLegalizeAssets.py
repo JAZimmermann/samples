@@ -78,6 +78,9 @@ apath = "B:/home/johnz/scripts/jbtool/cw_scripts"
 if not apath in sys.path:
     sys.path.insert(2, apath)
 
+apath = "B:/home/johnz/scripts/jbtools"
+if apath not in sys.path:
+    sys.path.insert(2, apath)
 
 # VAD
 import ddConstants; reload(ddConstants)
@@ -99,11 +102,17 @@ import ddRemoveNamespaces; reload(ddRemoveNamespaces)
 import ddRemovePivotOffsets; reload(ddRemovePivotOffsets)
 import ddReplaceWithReference; reload(ddReplaceWithReference)
 import ddResetGeoMetadata; reload(ddResetGeoMetadata)
-import ddScreenGrab; reload(ddScreenGrab)
 import ddSnap; reload(ddSnap)
 import ddSwapForReference; reload(ddSwapForReference)
 import ddTransferTransformsFromGeo; reload(ddTransferTransformsFromGeo)
 import ddUnlockGeoTransforms; reload(ddUnlockGeoTransforms)
+# import ddScreenGrab; reload(ddScreenGrab)
+
+from VAD import ddScreenBoardGrab; reload(ddScreenBoardGrab)
+from VAD import ddCheckWorkingUnits; reload(ddCheckWorkingUnits)
+
+# from mayatools.VAD import ddScreenBoardGrab; reload(ddScreenBoardGrab)
+# from mayatools.VAD import ddCheckWorkingUnits; reload(ddCheckWorkingUnits)
 
 
 def doAddGeoMetadata(arg=None):
@@ -298,11 +307,11 @@ def doImportFromReference(arg=None):
     '''Button: Import From Reference.
     '''
     sys.stdout.write("Importing from reference... \n")
-    mel.eval('MLdeleteUnused')
+    # mel.eval('MLdeleteUnused')
     nodes = getSelectionList()
     if nodes:
         ddImportFromReference.do(nodes)
-    mel.eval('MLdeleteUnused')
+    # mel.eval('MLdeleteUnused')
 
 # end (doImportFromReference)
 
@@ -392,7 +401,9 @@ def doScreenGrab(arg=None):
     currentAssetCategory = getAssetCategory()
     nodes = getSelectionList()
     if nodes:
-        ddScreenGrab.do(nodes=nodes, currentAssetCategory=currentAssetCategory)
+        ddScreenBoardGrab.do_boards(nodes=nodes,
+                                    current_asset_category=currentAssetCategory)
+        # ddScreenGrab.do(nodes=nodes, currentAssetCategory=currentAssetCategory)
 
 # end (doScreenGrab)
 
@@ -851,5 +862,8 @@ def do(defaultCategory="environments"):
     window = cmds.window("legalizeAssetWIN", e=1, widthHeight=(300, 558))
     
     cmds.showWindow(window)
+
+    # notify user of potential working units issue
+    ddCheckWorkingUnits.check_units()
     
 # end do()
