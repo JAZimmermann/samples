@@ -143,8 +143,8 @@ class PublishEmail(object):
                                           self.mail.all_to_addrs,
                                           str(self.mail))
             self._connect_server.quit()
-        except:
-            raise Exception("Issues sending mail..")
+        except Exception, emsg:
+            raise Exception("Issues sending mail..\n\t%s" % emsg)
 
     def print_message(self):
         print self.mail
