@@ -44,7 +44,7 @@ class PublishEmail(object):
     '''
     _DEFAULT_HOST = "172.25.1.8"
     def __init__(self, category_template, get_notes=True,
-                                    host_server=None, debug_level=0):
+                                    host_server=None, debug_level=1):
         '''
         initialize instance
         '''
@@ -139,10 +139,15 @@ class PublishEmail(object):
                                                ",".join(self.mail.all_to_addrs))
             self._connect_server = smtplib.SMTP(self.host)
             self._connect_server.set_debuglevel(self._debug_level)
-            self._connect_server.sendmail(self.mail.from_addrs,
+            status = self._connect_server.sendmail(self.mail.from_addrs,
                                           self.mail.all_to_addrs,
                                           str(self.mail))
+            print "Status of sent mail: %s" % status
             self._connect_server.quit()
+        except smtplib.SMTPConnectError, emsg:
+            print "Issues connecting to send mail..\n\t%s" % emsg
+            raise smtplib.SMTPConnectError
+
         except Exception, emsg:
             raise Exception("Issues sending mail..\n\t%s" % emsg)
 
