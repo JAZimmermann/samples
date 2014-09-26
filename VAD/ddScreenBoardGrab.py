@@ -966,7 +966,7 @@ class CharacterBoardImage(AssetBoardImage):
         '''
         # prep regex patterns
         scene_patt = re.compile("char_(%s)_[A-Z]{3}_[a-z]+"
-                                        % "|".join(self._charType.values()))
+                                        % "|".join(self._charType.keys()))
         char_patt = re.compile("[A-Z]{3}_[a-zA-Z]+")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
