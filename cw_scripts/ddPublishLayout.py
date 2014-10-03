@@ -1306,12 +1306,22 @@ def doPublishScene(arg=None):
     exported = False
     publish_details = {}
     publish_details["Notes"] = publish_notes.PublishNotes().notes
+
+    # prep regex patterns
+    scene_patt = re.compile("[0-9]{4}_[A-Z]{3}_[a-zA-Z]+")
+    version_patt = re.compile("_v([0-9]{2,4})_*")
+
     startingDirectory = ddConstants.LAYOUT_DIR
     startingFileName = ""
     envNull = [x for x in (cmds.listRelatives("env_master", children=True) or []) if cmds.nodeType(x) == "transform" and x.startswith("env")]
     if envNull:
         startingFileName = envNull[0].replace("env_", "").replace("_GRP", "")
-        directory = os.path.join(ddConstants.LAYOUT_DIR, startingFileName.rpartition("_")[0])
+
+        # attempt to locate scene from group node and build publish location
+        directory = startingDirectory
+        if scene_patt.search(startingFileName):
+            directory = os.path.join(startingDirectory,
+                                 scene_patt.search(startingFileName).group())
         if os.path.isdir(directory):
             startingDirectory = directory
         if os.path.isdir(os.path.join(directory, "published")):
@@ -1329,6 +1339,19 @@ def doPublishScene(arg=None):
         if result == "Cancel":
             return
         filename = cmds.promptDialog(query=True, text=True)
+        # test to make sure that scene starting directory was correctly
+        # found from group node
+        if scene_patt.search(filename):
+            scene = scene_patt.search(filename).group()
+            if not scene in startingDirectory:
+                if os.path.isdir(os.path.join(startingDirectory,
+                                                        scene, "published")):
+                    startingDirectory = os.path.join(startingDirectory, scene)
+
+                if os.path.isdir(os.path.join(startingDirectory, "published")):
+                    startingDirectory = os.path.join(startingDirectory,
+                                                                    "published")
+
         if filename and not os.path.isfile(os.path.join(startingDirectory, "%s.ma" % filename)):
             done = True
         else:
@@ -1340,14 +1363,17 @@ def doPublishScene(arg=None):
                     )
             if confirm == "Cancel":
                 return
-                
+
+    sys.stdout.write("Starting directory found. " \
+                            + "Publish will be saved to %s" % startingDirectory)
+
     if filename:
         if not filename == startingFileName:
             if envNull:
                 cmds.rename(envNull[0], "env_%s_GRP" % filename)
-        # prep regex patterns
-        scene_patt = re.compile("[0-9]{4}_[A-Z]{3}_[a-z]+")
-        version_patt = re.compile("_v([0-9]{2,4})_*")
+        # # prep regex patterns
+        # scene_patt = re.compile("[0-9]{4}_[A-Z]{3}_[a-z]+")
+        # version_patt = re.compile("_v([0-9]{2,4})_*")
 
         # attempt to collect set name for email's publish details
         if scene_patt.search(filename):
