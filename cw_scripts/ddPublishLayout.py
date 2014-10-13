@@ -1406,7 +1406,7 @@ def doPublishScene(arg=None):
         ddRemoveRequires.do(path=exportedFile)
         
         # Export fbx file
-        fbxFilename = filename.replace(".ma", ".fbx").replace(os.sep, "/")
+        fbxFilename = filename.replace(".ma", ".fbx")
         publish_details["FBXPATH"] = fbxFilename
         sys.stdout.write('Exporting fbx file "%s" ...\n' % fbxFilename)
         exported = False
