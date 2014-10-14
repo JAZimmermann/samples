@@ -1256,7 +1256,7 @@ class ScreenBoard(object):
         '''
         self._thumb_image_path = thumb_path
 
-    def use_board_image(self, board_image):
+    def use_board_image(self, board_image, do_thumb=True):
         '''
         utilize BoardImage variant object as basis for details
 
@@ -1266,11 +1266,13 @@ class ScreenBoard(object):
         '''
         self.image_path = board_image.full_pub_path
         self.image_ext = board_image.img_extension
-        self.thumb_image_path = board_image.full_pub_thumb_path
 
         self.quality = board_image.img_quality
         self.width_height = (board_image.img_width, board_image.img_height)
-        self.thumb_width_height = (board_image.thumb_width,
+
+        if do_thumb:
+            self.thumb_image_path = board_image.full_pub_thumb_path
+            self.thumb_width_height = (board_image.thumb_width,
                                         board_image.thumb_height)
 
     def grab_thumbnail(self):
@@ -1370,7 +1372,7 @@ def do_layout_boards(use_path=None, exclude_prefixes=[],
 
         # prepping screen board
         screen_board = ScreenBoard()
-        screen_board.use_board_image(set_image)
+        screen_board.use_board_image(set_image, do_thumb=False)
         screen_board.grab()
 
     sys.stdout.write('completed processing bookmarks.. resetting environment..')
