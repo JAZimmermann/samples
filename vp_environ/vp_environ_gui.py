@@ -112,6 +112,9 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         # for common DD python tools, particularly vir_prod package
         if 'PYTHONPATH' not in os.environ:
             self.set_env('PYTHONPATH', 'b:/tools/common/python')
+        elif 'b:/tools/common/python'.replace('/', os.sep) \
+                                                not in os.getenv('PYTHONPATH'):
+            self.set_env('PYTHONPATH', r'%PYTHONPATH%;b:/tools/common/python')
 
     def _setupDefaults(self):
         '''
@@ -231,7 +234,7 @@ class VP_Environ_Gui(QtGui.QMainWindow):
         :return C(bool)
         '''
         if not self.details['ARTIST']:
-            msg = '%s is not a valid name.\n' \
+            msg = '%s is not a valid .\n' \
                     % self.details['ARTIST'] \
                     + 'Please re-enter artist.'
             nonwin_dialog = QtGui.QMessageBox(QtGui.QMessageBox.Warning,
