@@ -138,7 +138,6 @@ class DuplicateWSPositionResults_GUI(object):
 
         return True
 
-
     def _build_duplicates_scroll_list(self):
         '''
         Prep default values and kick of build of scroll list for
@@ -184,7 +183,7 @@ class DuplicateWSPositionResults_GUI(object):
         :param  uparent: parent layout region that should contain build controls
         '''
         scroll_format = mc.columnLayout(parent=uparent, adjustableColumn=True)
-        scroll_label = mc.text(label=ulabel, align='left')
+        scroll_label = mc.text(label=ulabel, align='left', parent=scroll_format)
         scroll_list = mc.textScrollList(allowMultiSelection=True,
                             parent=scroll_format, annotation=uannotate)
         mc.textScrollList(scroll_list, edit=True,
@@ -298,11 +297,10 @@ def check_for_dupe_positions(found_assets):
         apivots = mc.xform(asset, query=True, worldSpace=True,
                                             absolute=True, pivots=True)
 
+        # check if pivot exists at origin
         if is_at_origin(apivots):
             found_positions['origin'].append(asset)
             continue
-
-        # TODO:: potentially do multiple lists, one for dupes and one for objects at origins
 
         # iterate over scene assets for comparisons
         for test_asset in found_assets:
@@ -325,6 +323,7 @@ def check_for_dupe_positions(found_assets):
                 found_positions['ws_dupes'].append(test_asset)
                 ws_dupes.append(test_asset)
 
+    # clean up list of found assets to eliminate duplicate assets in lists
     found_positions['origin'] = list(set(found_positions['origin']))
     found_positions['ws_dupes'] = list(set(found_positions['ws_dupes']))
     mc.waitCursor(state=False)
@@ -364,6 +363,7 @@ def select_duplicates():
             msg += ".\nEach has been selected for review and " \
                                         + "also printed to the Script Editor."
 
+            # prep and display results in a gui window
             results_win = DuplicateWSPositionResults_GUI(located_assets)
             results_win.show_win()
         else:
