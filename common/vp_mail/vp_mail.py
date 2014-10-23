@@ -69,10 +69,20 @@ class Templation(object):
 
     @property
     def template(self):
+        '''
+        get template object
+        '''
         return self._template
 
     @template.setter
     def template(self, utemplate):
+        '''
+        set and load up provided template for use
+
+        :type   utemplate: C{str}
+        :param  utemplate: template string or file path to template used
+                            to fill in details
+        '''
         self._template = self._load_template(utemplate)
 
     @property
@@ -84,12 +94,19 @@ class Templation(object):
         return os.path.join(cwd, 'etemplates')
 
     def _loader(self, tpath=None):
+        '''
+        set up file loader for environment
+        '''
         if not tpath or not os.path.isdir(tpath):
             tpath = self.default_template_path
 
         self._environment.loader = jinja2.FileSystemLoader(tpath)
 
     def _load_template(self, template):
+        '''
+        attempt to load provided template from string if passed otherwise
+            attempt to load and get template from file if exists
+        '''
         # check if provided template is just a string a
         template_str_pattern = re.compile("{{")
         if template_str_pattern.search(template):
@@ -135,6 +152,9 @@ class VPMail(object):
 
     @property
     def template(self):
+        '''
+        get template object
+        '''
         return self._template
 
     @property

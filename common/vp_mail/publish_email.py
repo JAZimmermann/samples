@@ -61,10 +61,19 @@ class PublishEmail(object):
 
     @property
     def host(self):
+        '''
+        get host address
+        '''
         return self._host
 
     @host.setter
     def host(self, server):
+        '''
+        set host address to use when sending email
+
+        :type   server: C{str}
+        :param  server: server address used to send mail through
+        '''
         self._host = server if server else self._DEFAULT_HOST
 
     @property
@@ -79,10 +88,20 @@ class PublishEmail(object):
 
     @property
     def publish_details(self):
+        '''
+        get publish details
+        '''
         return self._publish_details
 
     @publish_details.setter
     def publish_details(self, pub_details):
+        '''
+        collect publish details used in creating mail
+
+        :type   pub_details: C{dict}
+        :param  pub_details: publish details including names, files, etc
+                                necessary to fill in template
+        '''
         if not isinstance(pub_details, dict):
             raise TypeError("%s is not a dict" % pub_details)
 
@@ -96,10 +115,19 @@ class PublishEmail(object):
 
     @property
     def mail(self):
+        '''
+        get mail details
+        '''
         return self._mail
 
     @mail.setter
     def mail(self, details):
+        '''
+        create mail information based on template and details
+
+        :type   details: C{dict}
+        :params details: details dictionary used to fill in mail template
+        '''
         self._mail = vp_mail.VPMail(vp_mail.Templation(), details)
 
     def build_email(self):
@@ -133,6 +161,9 @@ class PublishEmail(object):
             self.mail.body = self.category_details.get("Template File")
 
     def send_mail(self):
+        '''
+        attempt to send email through smtp
+        '''
         try:
             print "Sending mail '%s' to the following addresses %s..." \
                                             % (self.mail.subject,
@@ -152,6 +183,9 @@ class PublishEmail(object):
             raise Exception("Issues sending mail..\n\t%s" % emsg)
 
     def print_message(self):
+        '''
+        print out mail information
+        '''
         print self.mail
 
 
