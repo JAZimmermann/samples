@@ -1100,8 +1100,8 @@ class EnvironmentBoardImage(AssetBoardImage):
         '''
         # prep regex patterns
         scene_patt = re.compile(
-                    "[a-z]{3,4}(_[a-z]{3})*(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
-        environ_asset_patt = re.compile("([a-zA-Z]+[A-Z]v[A-Z])")
+            "[a-z]{3,4}(_[a-z]{3})*(_[a-z]+)*_([a-zA-Z]+[0-9]*[A-Z]v[A-Z])_*")
+        environ_asset_patt = re.compile("([a-zA-Z]+[0-9]*[A-Z]v[A-Z])")
         version_patt = re.compile("_v([0-9]{2,4})_*")
 
         # get scene file
