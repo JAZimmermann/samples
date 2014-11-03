@@ -605,7 +605,7 @@ def do(nodes=None, replaceWithReference=True, export=True, currentAssetCategory=
             else:
                 exportedNode, exportedPath, override = exportAsset(node=validNode, override=False, currentAssetCategory=currentAssetCategory)
                 env_patt = re.compile(
-                        "[a-z]{3}_[a-z]{3}(_[a-z]+)*_([a-zA-Z]+[A-Z]v[A-Z])_*")
+                        "[a-z]{3,4}(_[a-z]{3})*(_[a-z]+)*_([a-zA-Z]+[0-9]*[A-Z]v[A-Z])_*")
                 if env_patt.search(exportedNode):
                     publish_details["Enviro_Asset"] = \
                                     env_patt.search(exportedNode).groups()[-1]
