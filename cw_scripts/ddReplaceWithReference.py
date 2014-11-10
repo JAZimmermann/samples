@@ -83,9 +83,10 @@ def do(nodes=None, currentAssetLibrary=ddConstants.ASSETLIBRARY):
         for nodePart in nodeParts:
             if nodePart in dividerTypes:
                 divider = "%s_GRP" % nodePart
-         
+
         # There should be at least 6 tokens to find the file.
-        if len(nodeParts) < 6:
+        #   unless it's in the prop structure
+        if not nodeParts[0].startswith('prop') and len(nodeParts) < 6:
             cmds.warning("--> Published asset file not found for %s. Skipping..." % node.rpartition("|")[2])
             continue
         
