@@ -21,14 +21,34 @@
 # $Author: johnz $
 #
 
+import codecs
 import datetime
 import os
 import re
+import warnings
 
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, ElementTree
 from xml.dom import minidom
 
 import maya.cmds as mc
+
+
+def warning_user_friendly(message, category, filename, lineno,
+                                                        file=None, line=None):
+    '''
+    provide a more user friendly warning, while also displaying basic debug info
+    '''
+    return '%s: %s  - %s:%s' % (category.__name__, message, filename, lineno)
+
+warnings.formatwarning = warning_user_friendly
+
+
+class LightsToUFileException(Exception):
+    pass
+
+
+class SceneNameException(Exception):
+    pass
 
 
 class LightsToU(object):
@@ -45,6 +65,7 @@ class LightsToU(object):
         '''
         self._set_type = set_type
         self._xml_root = Element(self._set_type)
+        self._xml_path = None
 
     @property
     def xml_root(self):
@@ -52,6 +73,30 @@ class LightsToU(object):
         get current xml root collection
         '''
         return self._xml_root
+
+    @property
+    def xml_path(self):
+        '''
+        get intended xml file path
+        '''
+        return self._xml_path
+
+    @xml_path.setter
+    def xml_path(self, xml_file_path):
+        '''
+        attempt to set specified xml save path
+
+        :type   xml_file_path: C{str}
+        :param  xml_file_path: path to the intended xml file
+        '''
+        if not os.path.isdir(os.path.dirname(xml_file_path)):
+            raise LightsToUFileException('Directory does not exist: %s.'
+                                            % os.path.dirname(xml_file_path))
+        if os.path.isfile(xml_file_path):
+            raise LightsToUFileException('File already exists: %s.'
+                                                                % xml_file_path)
+
+        self._xml_path = xml_file_path
 
     def process_scene_details(self, scene_details):
         '''
@@ -131,6 +176,20 @@ class LightsToU(object):
         '''
         print self.prettify(self._xml_root)
 
+    def write(self):
+        '''
+        write xml root data to file
+        '''
+        if not self.xml_path:
+            warnings.warn("XML file path has not been provided. " \
+                            + "Please set intended file path and try again.",
+                            UserWarning)
+            return
+
+        with codecs.open(self.xml_path, 'w',
+                        encoding=self.ENCODING_FORMAT) as xml_file:
+            xml_file.write(self.prettify(self.xml_root))
+
     @classmethod
     def prettify(cls, elem):
         """
@@ -142,11 +201,14 @@ class LightsToU(object):
         """
         rough_string = tostring(elem, cls.ENCODING_FORMAT)
         reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
+        return reparsed.toprettyxml(indent="  ", encoding=cls.ENCODING_FORMAT)
 
 
 class Scene(object):
     def __init__(self):
+        '''
+        initialize instance variables
+        '''
         self._scene = ''
         self._scene_version = 0
         self._time = str(datetime.datetime.now())
@@ -170,47 +232,6 @@ class Scene(object):
             vars_dict[new_key] = inst_vars[ikey]
 
         return vars_dict
-
-    # @property
-    # def date_time(self):
-    #     '''
-    #     get current time string
-    #     '''
-    #     return str(datetime.datetime.now())
-    #
-    # @property
-    # def scene(self):
-    #     '''
-    #     get scene name
-    #     '''
-    #     return self._scene
-    #
-    # @scene.setter
-    # def scene(self, scene_name):
-    #     '''
-    #     set instance scene name
-    #
-    #     :type   scene_name: C{str}
-    #     :param  scene_name: found scene name to be set
-    #     '''
-    #     self._scene = scene_name
-    #
-    # @property
-    # def scene_version(self):
-    #     '''
-    #     get version number
-    #     '''
-    #     return self._scene_version
-    #
-    # @scene_version.setter
-    # def scene_version(self, version_str):
-    #     '''
-    #     set int version value
-    #
-    #     :type   version_str: C{str}
-    #     :param  version_str: found version string to be set as an int
-    #     '''
-    #     self._scene_version = version_str
 
     def _collect_scene_file(self):
         '''
@@ -246,7 +267,7 @@ class Scene(object):
                 break
 
         if not self._scene:
-            raise Exception("Scene could not be determined. " + \
+            raise SceneNameException("Scene could not be determined. " + \
                                 " Make sure scene is either in file path.")
 
 
@@ -254,6 +275,8 @@ class SceneLights(object):
     '''
     Collection of Maya scene light nodes
     '''
+    _UNSUPPORTED_LIGHTS = ['ambientLight', 'volumeLight']
+
     def __init__(self):
         '''
         initialize instance variables
@@ -278,7 +301,7 @@ class SceneLights(object):
             return
 
         for lght in found_lights:
-            if mc.nodeType(lght) == 'ambientLight':
+            if mc.nodeType(lght) in self._UNSUPPORTED_LIGHTS:
                 continue
             self._lights.append(SceneLightNode(lght))
 
