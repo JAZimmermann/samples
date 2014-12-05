@@ -338,6 +338,42 @@ def collect_all_shading_engines():
                     if not x in ['initialParticleSE', 'initialShadingGroup']]
 
 
+def collect_all_shaders():
+    '''
+    collect all shaders in scene
+    '''
+    shaders = []
+    for shading_engine in collect_all_shading_engines():
+        t_shader = cmds.listConnections("%s.surfaceShader" % shading_engine)
+        if t_shader:
+            shaders.append(t_shader)
+
+    return shaders
+
+
+def collect_all_texture_files():
+    '''
+    collect all the texture files in scene
+    '''
+    texture_files = []
+    for shader in collect_all_shaders():
+        t_files = collect_texture_files(shader)
+        for tfile in t_files:
+            texture_files.append(tfile)
+
+    return texture_files
+
+
+def collect_texture_files(shader):
+    '''
+    collect texture file(s) attached to specified shader
+
+    :type   shader: C{str}
+    :param  shader: shading engine to collect texture files from
+    '''
+    return cmds.listConnections(shader, type='file') or []
+
+
 def file_color_changed(file_node, guibose=True):
     '''
     check to see if file node color gain and color offset have been modified
@@ -372,6 +408,40 @@ def file_color_changed(file_node, guibose=True):
                 return True # Prevent asset export
 
     return changed_values
+
+
+def turn_off_all_alphaluminance():
+    '''
+    make sure that all shader texture file's have alphaIsLuminance turned off
+    '''
+    texture_files = collect_all_texture_files()
+    changed = 0
+
+    if texture_files:
+        for t_file in texture_files:
+            processed = check_alpha_luminance(t_file)
+            if processed:
+                changed += 1
+
+    sys.stdout.write('Alpha Luminance Check Complete.  ' \
+                            + 'Updated %d of %d texture file nodes.'
+                                                % (changed, len(texture_files)))
+
+
+def check_alpha_luminance(file_node, alphaluminance=False):
+    '''
+    check file node for alpha is luminance
+
+    :type   file_node: C{str}
+    :param  file_node: shader's file node to check
+    :type   alphaluminance: C{bool}
+    :param  alphaluminance: value that alphaIsLuminance attribute should be
+    '''
+    if cmds.getAttr('%s.alphaIsLuminance' % file_node) != alphaluminance:
+        cmds.setAttr('%s.alphaIsLuminance' % file_node, alphaluminance)
+        return True
+
+    return False
 
 
 def do(node=None, override=False, publish=False):
