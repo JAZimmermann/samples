@@ -107,8 +107,8 @@ class Templation(object):
         attempt to load provided template from string if passed otherwise
             attempt to load and get template from file if exists
         '''
-        # check if provided template is just a string a
-        template_str_pattern = re.compile("{{")
+        # check if provided template is just a string
+        template_str_pattern = re.compile("\{\{\w+\}\}")
         if template_str_pattern.search(template):
             return self._environment.from_string(template)
 
